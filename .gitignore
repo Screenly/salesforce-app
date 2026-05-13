@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.screenly/
+mock-data.yml
+*.local
