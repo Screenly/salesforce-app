@@ -68,7 +68,7 @@ async function fetchAndRender(
     renderDashboard(results)
     showScreen('dashboard-screen')
     signalReady()
-  } catch (err) {
+  } catch {
     // Try refreshing the token once
     try {
       const newToken = await refreshAccessToken(clientId, auth.refresh_token)
@@ -88,9 +88,7 @@ async function fetchAndRender(
       signalReady()
     } catch {
       clearAuth()
-      showError(
-        'Session expired. Reload the page to re-authenticate.'
-      )
+      showError('Session expired. Reload the page to re-authenticate.')
     }
   }
 }
@@ -113,14 +111,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await fetchAndRender(clientId, dashboardId)
 
-  setInterval(
-    async () => {
-      try {
-        await fetchAndRender(clientId, dashboardId)
-      } catch (err) {
-        console.error('Refresh failed:', err)
-      }
-    },
-    refreshInterval * 1000
-  )
+  setInterval(async () => {
+    try {
+      await fetchAndRender(clientId, dashboardId)
+    } catch (err) {
+      console.error('Refresh failed:', err)
+    }
+  }, refreshInterval * 1000)
 })

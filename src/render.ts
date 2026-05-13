@@ -120,8 +120,7 @@ function renderTable(
   reportResult: ReportResult
 ): void {
   const columns = meta.properties.tableColumns ?? []
-  const columnInfo =
-    reportResult.reportExtendedMetadata?.detailColumnInfo ?? {}
+  const columnInfo = reportResult.reportExtendedMetadata?.detailColumnInfo ?? {}
   const factMap = reportResult.factMap ?? {}
   const rows = Object.values(factMap).flatMap((entry) => entry.rows ?? [])
 
