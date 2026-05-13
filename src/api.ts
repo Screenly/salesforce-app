@@ -32,6 +32,6 @@ export async function getDashboardResults(
   return apiFetch<DashboardResults>(
     instanceUrl,
     accessToken,
-    `/analytics/dashboards/${dashboardId}/results`
+    `/analytics/dashboards/${dashboardId}`
   )
 }

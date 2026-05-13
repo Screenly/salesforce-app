@@ -6,15 +6,22 @@ Displays Salesforce dashboards on your Screenly digital signage screens using th
 
 - [Bun](https://bun.sh/) 1.2.2+
 - [Screenly CLI](https://developer.screenly.io/edge-apps/#getting-started)
-- A Salesforce account with a Connected App configured for OAuth 2.0 Device Flow
+- A Salesforce account with a Connected App configured for OAuth 2.0 Device Flow (a free [Developer Edition](https://www.salesforce.com/products/free-trial/developer/) account works)
 
 ## Setting Up a Salesforce Connected App
 
-1. In Salesforce, go to **Setup → Apps → App Manager → New Connected App**
-2. Enable **OAuth Settings**
-3. Add the following OAuth scopes: `Access and manage your data (api)`, `Perform requests on your behalf at any time (refresh_token)`
-4. Enable **Enable for Device Flow**
-5. Save and copy the **Consumer Key** — this is your `client_id` setting
+1. In Salesforce, go to **Setup &rarr; Apps &rarr; App Manager**
+2. Click **New External Client App**
+3. Fill in **External Client App Name** (e.g. `screenly-salesforce-edge-app`) and **Contact Email**
+4. Expand **API (Enable OAuth Settings)** and check **Enable OAuth**
+5. Set **Callback URL** to `https://localhost/callback`
+6. Under **OAuth Scopes**, add: `Manage user data via APIs (api)` (may appear as `Access and manage your data (api)` in older orgs) and `Perform requests at any time (refresh_token, offline_access)`
+7. Leave **Introspect all Tokens** and **Configure ID token** unchecked
+8. Under **Flow Enablement**, check **Enable Device Flow** only; leave all others unchecked
+9. Under **Security**, leave the three pre-checked options as-is (**Require secret for Web Server Flow**, **Require secret for Refresh Token Flow**, **Require Proof Key for Code Exchange (PKCE) extension for Supported Authorization Flows**)
+10. Leave **Web App (Enable SAML Settings)**, **Canvas App Settings**, **Mobile App Settings**, **Push Notification Settings**, and **Notification Settings** collapsed and unconfigured
+11. Click **Create**
+12. On the app detail page, go to **Settings &rarr; OAuth Settings &rarr; Consumer Key and Secret** (requires identity verification) and copy the **Consumer Key** (this is your `client_id` setting). The Consumer Secret is not needed.
 
 ## Getting Started
 
