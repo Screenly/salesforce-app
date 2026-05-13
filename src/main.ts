@@ -13,7 +13,7 @@ import {
   pollForToken,
   refreshAccessToken,
 } from './auth'
-import { getDashboardResults } from './api'
+import { getDashboardResults, AuthError } from './api'
 import { renderDashboard, showScreen, showError } from './render'
 
 async function startDeviceFlow(clientId: string): Promise<void> {
@@ -68,8 +68,9 @@ async function fetchAndRender(
     renderDashboard(results)
     showScreen('dashboard-screen')
     signalReady()
-  } catch {
-    // Try refreshing the token once
+  } catch (err) {
+    if (!(err instanceof AuthError)) throw err
+
     try {
       const newToken = await refreshAccessToken(clientId, auth.refresh_token)
       saveAuth({

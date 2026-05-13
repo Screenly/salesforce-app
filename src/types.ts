@@ -62,7 +62,7 @@ export interface DashboardResults {
     id: string
     components: DashboardMetadataComponent[]
   }
-  componentData: ComponentDataItem[]
+  componentData: (ComponentDataItem | null)[]
 }
 
 export interface StoredAuth {

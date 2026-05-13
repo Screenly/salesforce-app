@@ -199,7 +199,9 @@ export function renderDashboard(results: DashboardResults): void {
     results.dashboardMetadata.components.map((c) => [c.id, c])
   )
 
-  for (const item of results.componentData) {
+  for (const item of results.componentData.filter(
+    (x): x is ComponentDataItem => x !== null
+  )) {
     const meta = metaMap.get(item.componentId)
     if (!meta) continue
 

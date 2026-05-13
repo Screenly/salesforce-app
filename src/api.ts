@@ -8,6 +8,8 @@ function apiUrl(instanceUrl: string, path: string): string {
   return `${proxyUrl}/${instanceUrl}/services/data/${API_VERSION}${path}`
 }
 
+export class AuthError extends Error {}
+
 async function apiFetch<T>(
   instanceUrl: string,
   accessToken: string,
@@ -20,6 +22,7 @@ async function apiFetch<T>(
     },
   })
 
+  if (res.status === 401) throw new AuthError(`Unauthorized: ${path}`)
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
   return res.json() as Promise<T>
 }
