@@ -1,0 +1,135 @@
+@import '@screenly/edge-apps/styles';
+
+:root {
+  --card-bg: rgba(0, 0, 0, 0.4);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-padding: 24px;
+  --sf-blue: #00a1e0;
+}
+
+body {
+  background: #0a0a1a;
+  background-size: cover;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  gap: 24px;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Auth screen */
+#auth-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#auth-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 48px;
+  max-width: 600px;
+  text-align: center;
+  color: #fff;
+}
+
+#auth-card h2 {
+  font-size: 2rem;
+  margin-bottom: 16px;
+  color: var(--sf-blue);
+}
+
+#auth-card ol {
+  text-align: left;
+  font-size: 1.2rem;
+  line-height: 2;
+  margin: 24px 0;
+}
+
+#auth-card strong {
+  color: var(--sf-blue);
+  font-size: 1.4rem;
+}
+
+#auth-status {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1rem;
+  margin-top: 16px;
+}
+
+/* Dashboard screen */
+#dashboard-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#dashboard-title {
+  font-size: 1.8rem;
+  color: #fff;
+  margin: 0 0 16px 0;
+}
+
+#charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.chart-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: var(--card-padding);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.chart-title {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  font-weight: 600;
+}
+
+.chart-container {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+/* Error screen */
+#error-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.empty-state {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+  text-align: center;
+  margin: auto;
+}

@@ -1,0 +1,62 @@
+---
+syntax: manifest_v1
+id: salesforce-dashboard-app
+description: Display Salesforce dashboards on your Screenly screens
+icon: https://playground.srly.io/edge-apps/salesforce-app/static/images/icon.svg
+author: Screenly, Inc.
+categories:
+  - CRM
+  - Dashboard
+ready_signal: true
+settings:
+  client_id:
+    type: secret
+    title: Connected App Client ID
+    optional: false
+    help_text: |
+      The Consumer Key from your Salesforce Connected App.
+      Go to Setup → Apps → App Manager → your app → View → Consumer Key.
+  dashboard_id:
+    type: string
+    title: Dashboard ID
+    optional: false
+    help_text: |
+      The Salesforce Dashboard ID to display.
+      You can find it in the dashboard URL: /lightning/r/Dashboard/<ID>/view
+  refresh_interval:
+    type: string
+    title: Refresh Interval (seconds)
+    optional: true
+    default_value: '300'
+    help_text: How often to refresh dashboard data. Defaults to 300 seconds (5 minutes).
+  display_errors:
+    type: string
+    default_value: 'false'
+    title: Display Errors
+    optional: true
+    help_text:
+      properties:
+        advanced: true
+        help_text: For debugging purposes to display errors on the screen.
+        type: boolean
+      schema_version: 1
+  enable_analytics:
+    type: string
+    default_value: 'true'
+    title: enable_analytics
+    optional: true
+    help_text: Whether to enable analytics or not
+    is_global: true
+  sentry_dsn:
+    type: secret
+    title: Sentry Client Key
+    optional: true
+    help_text: Sentry Client Key from Sentry SDK for error capturing.
+    is_global: true
+  tag_manager_id:
+    type: string
+    default_value: ''
+    title: tag_manager_id
+    optional: true
+    help_text: Specify a Google Tag Manager ID
+    is_global: true

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salesforce Dashboard - Screenly Edge App</title>
+    <script src="screenly.js?version=1"></script>
+  </head>
+  <body>
+    <auto-scaler
+      reference-width="1920"
+      reference-height="1080"
+      orientation="auto"
+    >
+      <div id="app">
+        <app-header class="header" show-date></app-header>
+
+        <main id="content">
+          <!-- Auth screen: shown during Device Flow -->
+          <div id="auth-screen" style="display: none">
+            <div id="auth-card">
+              <h2>Connect to Salesforce</h2>
+              <p>To display your Salesforce dashboard, sign in on another device:</p>
+              <ol>
+                <li>Open <strong id="auth-url"></strong> in a browser</li>
+                <li>Enter the code: <strong id="user-code"></strong></li>
+              </ol>
+              <p id="auth-status">Waiting for authorization...</p>
+            </div>
+          </div>
+
+          <!-- Dashboard screen: shown after auth -->
+          <div id="dashboard-screen" style="display: none">
+            <h2 id="dashboard-title"></h2>
+            <div id="charts-grid"></div>
+          </div>
+
+          <!-- Error screen -->
+          <div id="error-screen" style="display: none">
+            <p id="error-message"></p>
+          </div>
+        </main>
+      </div>
+    </auto-scaler>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

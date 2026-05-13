@@ -1,0 +1,7 @@
+{
+  "extends": "@screenly/edge-apps/tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"]
+}
