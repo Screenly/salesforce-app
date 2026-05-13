@@ -14,40 +14,55 @@ export interface TokenResponse {
   issued_at: string
 }
 
-export interface DashboardComponent {
-  id: string
-  name: string
-  type: string // bar, line, pie, donut, etc.
-}
-
-export interface DashboardDescribe {
-  id: string
-  name: string
-  components: DashboardComponent[]
-}
-
 export interface FactMapEntry {
   aggregates: { label: string; value: number }[]
-  rows?: { dataCells: { label: string; value: number }[] }[]
+  rows?: { dataCells: { label: string; value: unknown }[] }[]
+}
+
+export interface ReportResult {
+  factMap: Record<string, FactMapEntry>
+  groupingsDown?: { groupings: { label: string; key: string }[] }
+  groupingsAcross?: { groupings: { label: string; key: string }[] }
+  reportExtendedMetadata?: {
+    detailColumnInfo?: Record<string, { label: string; dataType: string }>
+    aggregateColumnInfo?: Record<string, { label: string; dataType: string }>
+  }
+  reportMetadata?: {
+    detailColumns?: string[]
+    aggregates?: string[]
+  }
+}
+
+export interface ComponentDataItem {
+  componentId: string
+  reportResult: ReportResult | null
+  status: {
+    componentDataStatus: string
+    refreshStatus: string
+  }
+}
+
+export interface DashboardMetadataComponent {
+  id: string
+  header: string | null
+  title: string | null
+  reportId: string
+  type: string
+  properties: {
+    visualizationType: string
+    aggregates: { name: string }[]
+    groupings: { name: string }[]
+    tableColumns?: { column: string; type: string }[]
+  }
 }
 
 export interface DashboardResults {
   dashboardMetadata: {
     name: string
     id: string
+    components: DashboardMetadataComponent[]
   }
-  componentData: Record<
-    string,
-    {
-      componentType: string
-      title: string
-      reportResult: {
-        factMap: Record<string, FactMapEntry>
-        groupingsDown?: { groupings: { label: string; key: string }[] }
-        groupingsAcross?: { groupings: { label: string; key: string }[] }
-      }
-    }
-  >
+  componentData: ComponentDataItem[]
 }
 
 export interface StoredAuth {

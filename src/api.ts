@@ -29,9 +29,15 @@ export async function getDashboardResults(
   accessToken: string,
   dashboardId: string
 ): Promise<DashboardResults> {
-  return apiFetch<DashboardResults>(
-    instanceUrl,
-    accessToken,
-    `/analytics/dashboards/${dashboardId}`
-  )
+  const path = `/analytics/dashboards/${dashboardId}`
+
+  await fetch(apiUrl(instanceUrl, path), {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+  }).catch(() => {})
+
+  return apiFetch<DashboardResults>(instanceUrl, accessToken, path)
 }
