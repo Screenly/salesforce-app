@@ -21,8 +21,7 @@ const CHART_COLORS = [
 
 const CHART_TYPES = new Set([
   'bar',
-  'horizontalbar',
-  'verticalbar',
+  'column',
   'line',
   'pie',
   'donut',
@@ -32,7 +31,7 @@ const CHART_TYPES = new Set([
 function mapChartType(sfType: string): 'bar' | 'line' | 'pie' | 'doughnut' {
   const t = sfType.toLowerCase()
   if (t === 'donut') return 'doughnut'
-  if (t === 'bar' || t === 'horizontalbar' || t === 'verticalbar') return 'bar'
+  if (t === 'bar' || t === 'column') return 'bar'
   if (t === 'line') return 'line'
   if (t === 'pie') return 'pie'
   return 'bar'
@@ -43,12 +42,15 @@ function extractChartData(reportResult: ReportResult): {
   values: number[]
 } {
   const factMap = reportResult.factMap ?? {}
+  const groupings = reportResult.groupingsDown?.groupings ?? []
+  const groupingMap = new Map(groupings.map((g) => [g.key, g.label]))
   const labels: string[] = []
   const values: number[] = []
 
   for (const [key, entry] of Object.entries(factMap)) {
     if (key === 'T!T') continue
-    const label = key.split('!')[0].replace(/_/g, ' ')
+    const groupKey = key.split('!')[0]
+    const label = groupingMap.get(groupKey) ?? groupKey.replace(/_/g, ' ')
     const value = entry.aggregates?.[0]?.value ?? 0
     labels.push(label)
     values.push(Number(value))
@@ -72,6 +74,7 @@ function renderChart(
   }
 
   const chartType = mapChartType(sfType)
+  const isHorizontalBar = sfType.toLowerCase() === 'bar'
   const canvas = document.createElement('canvas')
   canvas.id = `chart-${componentId}`
   container.appendChild(canvas)
@@ -92,6 +95,7 @@ function renderChart(
       ],
     },
     options: {
+      indexAxis: isHorizontalBar ? 'y' : 'x',
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
