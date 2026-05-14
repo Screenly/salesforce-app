@@ -90,7 +90,7 @@ export function renderDashboard(results: DashboardResults): void {
 }
 
 export function showScreen(screenId: string): void {
-  const screens = ['auth-screen', 'dashboard-screen', 'error-screen']
+  const screens = ['dashboard-screen', 'error-screen']
   screens.forEach((id) => {
     const el = document.getElementById(id)
     if (el) el.style.display = id === screenId ? 'flex' : 'none'

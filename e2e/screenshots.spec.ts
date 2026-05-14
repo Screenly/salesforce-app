@@ -11,12 +11,10 @@ import path from 'path'
 
 const MOCK_INSTANCE_URL = 'https://mock.salesforce.com'
 const MOCK_DASHBOARD_ID = '01Z000000000001AAA'
-const MOCK_CLIENT_ID = 'mock-client-id'
 
-const MOCK_AUTH = {
-  access_token: 'mock-access-token',
-  refresh_token: 'mock-refresh-token',
-  instance_url: MOCK_INSTANCE_URL,
+const MOCK_CREDENTIALS = {
+  token: 'mock-access-token',
+  metadata: { instance_url: MOCK_INSTANCE_URL },
 }
 
 const SUMMARY_REPORT_RESULT = {
@@ -211,10 +209,11 @@ const MOCK_DASHBOARD_RESPONSE = {
 const { screenlyJsContent } = createMockScreenlyForScreenshots(
   { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
   {
-    client_id: MOCK_CLIENT_ID,
     dashboard_id: MOCK_DASHBOARD_ID,
     refresh_interval: '300',
     display_errors: 'false',
+    screenly_oauth_tokens_url: 'http://localhost:3000/',
+    screenly_app_auth_token: 'mock-token',
   }
 )
 
@@ -245,40 +244,6 @@ async function takeScreenshot(
   await context.close()
 }
 
-const AUTH_RESOLUTIONS = [
-  { width: 3840, height: 2160 },
-  { width: 2160, height: 3840 },
-]
-
-for (const { width, height } of AUTH_RESOLUTIONS) {
-  test(`screenshot auth ${width}x${height}`, async ({ browser }) => {
-    await takeScreenshot(
-      browser,
-      width,
-      height,
-      `auth-${width}x${height}.png`,
-      async (context) => {
-        await context.route(/oauth2\/token/, async (route) => {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              device_code: 'mock-device-code',
-              user_code: 'MOCK1234',
-              verification_uri: 'https://login.salesforce.com/setup/connect',
-              interval: 5,
-              expires_in: 1800,
-            }),
-          })
-        })
-      },
-      async (page) => {
-        await page.waitForSelector('#auth-screen', { state: 'visible' })
-      }
-    )
-  })
-}
-
 for (const { width, height } of RESOLUTIONS) {
   test(`screenshot ${width}x${height}`, async ({ browser }) => {
     await takeScreenshot(
@@ -287,9 +252,13 @@ for (const { width, height } of RESOLUTIONS) {
       height,
       `${width}x${height}.png`,
       async (context) => {
-        await context.addInitScript((auth) => {
-          localStorage.setItem('salesforce_auth', JSON.stringify(auth))
-        }, MOCK_AUTH)
+        await context.route(/access_token\//, async (route) => {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(MOCK_CREDENTIALS),
+          })
+        })
         await context.route(/analytics\/dashboards/, async (route) => {
           await route.fulfill({
             status: 200,
