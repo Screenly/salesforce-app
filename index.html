@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salesforce Dashboard - Screenly Edge App</title>
+    <script src="screenly.js?version=1"></script>
+  </head>
+  <body>
+    <auto-scaler
+      reference-width="1920"
+      reference-height="1080"
+      orientation="auto"
+    >
+      <div id="app">
+        <app-header class="header" show-date></app-header>
+
+        <main id="content">
+          <!-- Auth screen: shown during Device Flow -->
+          <div id="auth-screen" style="display: none">
+            <div id="auth-card">
+              <div id="auth-card-left">
+                <h2>Connect to<br />Salesforce</h2>
+                <p>
+                  Use any phone, tablet, or computer to authorize this screen in
+                  seconds.
+                </p>
+                <p id="auth-status">Waiting for authorization...</p>
+              </div>
+              <div id="auth-card-right">
+                <div class="auth-step">
+                  <span class="auth-step-number">1</span>
+                  <div class="auth-step-body">
+                    <div class="auth-step-label">Open in a browser</div>
+                    <div id="auth-url" class="auth-value"></div>
+                  </div>
+                </div>
+                <div class="auth-step">
+                  <span class="auth-step-number">2</span>
+                  <div class="auth-step-body">
+                    <div class="auth-step-label">Enter the code</div>
+                    <div id="user-code" class="auth-value auth-code"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard screen: shown after auth -->
+          <div id="dashboard-screen" style="display: none">
+            <h2 id="dashboard-title"></h2>
+            <div id="charts-grid"></div>
+          </div>
+
+          <!-- Error screen -->
+          <div id="error-screen" style="display: none">
+            <p id="error-message"></p>
+          </div>
+        </main>
+      </div>
+    </auto-scaler>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
