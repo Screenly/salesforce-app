@@ -86,6 +86,14 @@ This generates screenshots for all supported resolutions into the `screenshots/`
 - **Dashboard screenshots** (`<width>x<height>.png`): all standard Screenly resolutions, showing a fully rendered dashboard with bar, donut, line, and table widgets.
 - **Auth screen screenshots** (`auth-<width>x<height>.png`): 3840x2160 and 2160x3840 only, showing the Device Flow pairing screen.
 
+### Dashboard
+
+![Dashboard screenshot](screenshots/3840x2160.webp)
+
+### Auth Screen
+
+![Auth screen screenshot](screenshots/auth-3840x2160.webp)
+
 ## Deployment
 
 ```bash
