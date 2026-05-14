@@ -1,19 +1,3 @@
-export interface DeviceCodeResponse {
-  device_code: string
-  user_code: string
-  verification_uri: string
-  interval: number
-  expires_in: number
-}
-
-export interface TokenResponse {
-  access_token: string
-  refresh_token: string
-  instance_url: string
-  token_type: string
-  issued_at: string
-}
-
 export interface FactMapEntry {
   aggregates: { label: string; value: number }[]
   rows?: { dataCells: { label: string; value: unknown }[] }[]
@@ -95,10 +79,4 @@ export interface DashboardResults {
     }
   }
   componentData: (ComponentDataItem | null)[]
-}
-
-export interface StoredAuth {
-  access_token: string
-  refresh_token: string
-  instance_url: string
 }

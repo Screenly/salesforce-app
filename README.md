@@ -8,22 +8,7 @@ Displays Salesforce dashboards on your Screenly digital signage screens using th
 
 - [Bun](https://bun.sh/) 1.2.2+
 - [Screenly CLI](https://developer.screenly.io/edge-apps/#getting-started)
-- A Salesforce account with a Connected App configured for OAuth 2.0 Device Flow (a free [Developer Edition](https://www.salesforce.com/products/free-trial/developer/) account works)
-
-## Setting Up a Salesforce Connected App
-
-1. In Salesforce, go to **Setup &rarr; Apps &rarr; App Manager**
-2. Click **New External Client App**
-3. Fill in **External Client App Name** (e.g. `screenly-salesforce-edge-app`) and **Contact Email**
-4. Expand **API (Enable OAuth Settings)** and check **Enable OAuth**
-5. Set **Callback URL** to `https://localhost/callback`
-6. Under **OAuth Scopes**, add: `Manage user data via APIs (api)` (may appear as `Access and manage your data (api)` in older orgs) and `Perform requests at any time (refresh_token, offline_access)`
-7. Leave **Introspect all Tokens** and **Configure ID token** unchecked
-8. Under **Flow Enablement**, check **Enable Device Flow** only; leave all others unchecked
-9. Under **Security**, leave the three pre-checked options as-is (**Require secret for Web Server Flow**, **Require secret for Refresh Token Flow**, **Require Proof Key for Code Exchange (PKCE) extension for Supported Authorization Flows**)
-10. Leave **Web App (Enable SAML Settings)**, **Canvas App Settings**, **Mobile App Settings**, **Push Notification Settings**, and **Notification Settings** collapsed and unconfigured
-11. Click **Create**
-12. On the app detail page, go to **Settings &rarr; OAuth Settings &rarr; Consumer Key and Secret** (requires identity verification) and copy the **Consumer Key** (this is your `client_id` setting). The Consumer Secret is not needed.
+- A Salesforce account (a free [Developer Edition](https://www.salesforce.com/products/free-trial/developer/) account works)
 
 ## Getting Started
 
@@ -42,14 +27,17 @@ bun run dev
 
 This generates a `mock-data.yml` file (gitignored), starts the dev server, and starts a local CORS proxy on `http://127.0.0.1:8080`.
 
+For local development without depending on the Screenly backend, use the [mock-authenticator](mock-authenticator/README.md). It simulates the Screenly OAuth service by running a local Device Flow against Salesforce and serving the resulting tokens to the Edge App.
+
 After `mock-data.yml` is generated, fill in your values under `settings`:
 
 ```yaml
 settings:
-  client_id: '<your Salesforce Connected App Consumer Key>'
   dashboard_id: '<your Salesforce Dashboard ID>'
-  refresh_interval: '300'
   display_errors: 'false'
+  refresh_interval: '300'
+  screenly_app_auth_token: mock-token
+  screenly_oauth_tokens_url: 'http://localhost:3000/'
 ```
 
 ## Building
@@ -83,12 +71,7 @@ bun test
 bun run screenshots
 ```
 
-This generates screenshots for all supported resolutions into the `screenshots/` directory using mocked API data. It produces two sets:
-
-- **Dashboard screenshots** (`<width>x<height>.webp`): all standard Screenly resolutions, showing a fully rendered dashboard with bar, donut, line, and table widgets.
-- **Auth screen screenshots** (`auth-<width>x<height>.webp`): 3840x2160 and 2160x3840 only, showing the Device Flow pairing screen.
-
-![Auth screen screenshot](screenshots/auth-3840x2160.webp)
+This generates screenshots for all supported resolutions into the `screenshots/` directory using mocked API data. It produces dashboard screenshots (`<width>x<height>.png`) for all standard Screenly resolutions, showing a fully rendered dashboard with bar, donut, line, and table widgets.
 
 ## Deployment
 
@@ -100,16 +83,16 @@ screenly edge-app instance create
 
 ## Configuration
 
-| Setting            | Type   | Required | Description                                                               |
-| ------------------ | ------ | -------- | ------------------------------------------------------------------------- |
-| `client_id`        | secret | Yes      | Consumer Key from your Salesforce Connected App                           |
-| `dashboard_id`     | string | Yes      | Salesforce Dashboard ID (found in the dashboard URL)                      |
-| `refresh_interval` | string | No       | How often (in seconds) to refresh dashboard data. Default: `300`          |
-| `display_errors`   | string | No       | Display errors on screen for debugging (`true`/`false`). Default: `false` |
+| Setting            | Type   | Required | Description                                                                    |
+| ------------------ | ------ | -------- | ------------------------------------------------------------------------------ |
+| `access_token`     | secret | No       | For testing only. In production, the token is fetched dynamically via the API. |
+| `dashboard_id`     | string | Yes      | Salesforce Dashboard ID to display                                             |
+| `refresh_interval` | string | No       | How often (in seconds) to refresh dashboard data. Default: `300`               |
+| `display_errors`   | string | No       | Display errors on screen for debugging (`true`/`false`). Default: `false`      |
 
 ## Authentication
 
-This app uses the **OAuth 2.0 Device Flow**. On first load, the screen will display a URL and a short code. Open the URL on any browser, enter the code, and log in with your Salesforce credentials. The app will automatically continue once authorized and will use a refresh token to stay authenticated without requiring re-login.
+This app uses the Screenly OAuth service to obtain a Salesforce access token at runtime. For local development, the `mock-authenticator` acts as a stand-in for that service.
 
 ## Finding Your Dashboard ID
 

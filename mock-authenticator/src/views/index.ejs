@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salesforce Mock Authenticator</title>
+    <script src="/vendor/htmx/htmx.min.js"></script>
+    <script src="/vendor/alpine/cdn.min.js" defer></script>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0a0a1a;
+        color: #e0e0e0;
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+
+      .card {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 24px;
+        display: flex;
+        flex-direction: row;
+        overflow: hidden;
+        max-width: 960px;
+        width: 100%;
+        color: #fff;
+      }
+
+      .card-left {
+        background: rgba(0,161,224,0.08);
+        border-right: 1px solid rgba(255,255,255,0.18);
+        padding: 3rem 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1rem;
+        flex: 0 0 340px;
+      }
+
+      .card-left h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+        color: #fff;
+        margin: 0;
+      }
+
+      .card-left p {
+        font-size: 1rem;
+        color: rgba(255,255,255,0.85);
+        margin: 0;
+        line-height: 1.6;
+      }
+
+      .card-left .status {
+        font-size: 0.9rem;
+        color: rgba(255,255,255,0.5);
+        margin-top: 0.5rem;
+      }
+
+      .card-left .status-ok {
+        font-size: 0.9rem;
+        color: #00c9a7;
+        margin-top: 0.5rem;
+      }
+
+      .card-right {
+        flex: 1;
+        padding: 3rem 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1.25rem;
+      }
+
+      .auth-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 1.25rem;
+      }
+
+      .auth-step-number {
+        flex-shrink: 0;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: #00a1e0;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.25rem;
+      }
+
+      .auth-step-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .auth-step-label {
+        font-size: 0.85rem;
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .auth-value {
+        font-size: 1.1rem;
+        color: #00a1e0;
+        word-break: break-all;
+        font-weight: 500;
+      }
+
+      .auth-code {
+        font-size: 2.4rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #fff;
+      }
+
+      .divider {
+        border: none;
+        border-top: 1px solid rgba(255,255,255,0.08);
+        margin: 0.5rem 0;
+      }
+
+      .actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+      .btn {
+        display: inline-block;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        text-decoration: none;
+      }
+
+      .btn-primary { background: #00a1e0; color: #fff; }
+      .btn-primary:hover { background: #0090c8; }
+      .btn-danger {
+        background: rgba(255,80,80,0.15);
+        color: #ff6b6b;
+        border: 1px solid rgba(255,80,80,0.3);
+      }
+      .btn-danger:hover { background: rgba(255,80,80,0.25); }
+
+      .token-field { position: relative; margin-bottom: 1.25rem; }
+
+      .token-value {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 0.65rem 2.8rem 0.65rem 0.75rem;
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: #a0cfff;
+        word-break: break-all;
+        line-height: 1.5;
+      }
+
+      .field-label {
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.45);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.4rem;
+      }
+
+      .copy-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: rgba(255,255,255,0.4);
+        font-size: 1rem;
+        padding: 0.2rem;
+        line-height: 1;
+      }
+      .copy-btn:hover { color: #fff; }
+    </style>
+  </head>
+  <body>
+    <% if (tokens) { %>
+      <div class="card" x-data="{
+        copied: null,
+        tokens: {
+          access_token: document.getElementById('data-access-token').textContent,
+          refresh_token: document.getElementById('data-refresh-token').textContent
+        }
+      }">
+        <template id="data-access-token" style="display:none"><%= tokens.access_token %></template>
+        <template id="data-refresh-token" style="display:none"><%= tokens.refresh_token %></template>
+        <div class="card-left">
+          <h1>Connected to<br />Salesforce</h1>
+          <p>Tokens are ready for the Edge App.</p>
+          <p class="status-ok">&#10003; Authenticated</p>
+        </div>
+        <div class="card-right">
+          <div class="token-field">
+            <div class="field-label">Access Token</div>
+            <div class="token-value"><%= tokens.access_token %></div>
+            <button class="copy-btn" title="Copy"
+              @click="navigator.clipboard.writeText(tokens.access_token); copied = 'access'">&#128203;</button>
+            <span x-show="copied === 'access'" x-transition style="font-size:0.75rem;color:#00c9a7;margin-left:0.5rem">Copied!</span>
+          </div>
+          <div class="token-field">
+            <div class="field-label">Refresh Token</div>
+            <div class="token-value"><%= tokens.refresh_token %></div>
+            <button class="copy-btn" title="Copy"
+              @click="navigator.clipboard.writeText(tokens.refresh_token); copied = 'refresh'">&#128203;</button>
+            <span x-show="copied === 'refresh'" x-transition style="font-size:0.75rem;color:#00c9a7;margin-left:0.5rem">Copied!</span>
+          </div>
+          <div class="token-field">
+            <div class="field-label">Instance URL</div>
+            <div class="token-value"><%= tokens.instance_url %></div>
+          </div>
+          <hr class="divider" />
+          <div class="actions">
+            <form method="POST" action="/start" style="margin:0">
+              <button type="submit" class="btn btn-primary">Re-authenticate</button>
+            </form>
+            <form method="POST" action="/clear" style="margin:0">
+              <button type="submit" class="btn btn-danger">Clear Tokens</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    <% } else if (deviceFlow) { %>
+      <div class="card">
+        <div class="card-left">
+          <h1>Connect to<br />Salesforce</h1>
+          <p>Use any phone, tablet, or computer to authorize this screen in seconds.</p>
+          <div
+            id="poll-status"
+            class="status"
+            hx-post="/poll"
+            hx-trigger="load delay:<%= deviceFlow.interval %>s"
+            hx-vals='{"device_code": "<%= deviceFlow.device_code %>", "interval": "<%= deviceFlow.interval %>"}'
+            hx-swap="outerHTML"
+          >Waiting for authorization...</div>
+        </div>
+        <div class="card-right">
+          <div class="auth-step">
+            <span class="auth-step-number">1</span>
+            <div class="auth-step-body">
+              <div class="auth-step-label">Open in a browser</div>
+              <div class="auth-value"><%= deviceFlow.verification_uri %></div>
+            </div>
+          </div>
+          <div class="auth-step">
+            <span class="auth-step-number">2</span>
+            <div class="auth-step-body">
+              <div class="auth-step-label">Enter the code</div>
+              <div class="auth-code"><%= deviceFlow.user_code %></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <% } else { %>
+      <div class="card">
+        <div class="card-left">
+          <h1>Connect to<br />Salesforce</h1>
+          <p>Authorize this screen to display your Salesforce dashboards.</p>
+        </div>
+        <div class="card-right">
+          <p style="color:rgba(255,255,255,0.5);margin:0 0 1.5rem">No tokens stored yet.</p>
+          <form method="POST" action="/start" style="margin:0">
+            <button type="submit" class="btn btn-primary">Authenticate with Salesforce</button>
+          </form>
+        </div>
+      </div>
+    <% } %>
+
+    <script>
+      document.body.addEventListener('htmx:afterSettle', function () {
+        const el = document.getElementById('poll-status')
+        if (el && el.dataset.authorized === 'true') {
+          window.location.reload()
+        }
+      })
+    </script>
+  </body>
+</html>

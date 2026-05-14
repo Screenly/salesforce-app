@@ -16,36 +16,6 @@
         <app-header class="header" show-date></app-header>
 
         <main id="content">
-          <!-- Auth screen: shown during Device Flow -->
-          <div id="auth-screen" style="display: none">
-            <div id="auth-card">
-              <div id="auth-card-left">
-                <h2>Connect to<br />Salesforce</h2>
-                <p>
-                  Use any phone, tablet, or computer to authorize this screen in
-                  seconds.
-                </p>
-                <p id="auth-status">Waiting for authorization...</p>
-              </div>
-              <div id="auth-card-right">
-                <div class="auth-step">
-                  <span class="auth-step-number">1</span>
-                  <div class="auth-step-body">
-                    <div class="auth-step-label">Open in a browser</div>
-                    <div id="auth-url" class="auth-value"></div>
-                  </div>
-                </div>
-                <div class="auth-step">
-                  <span class="auth-step-number">2</span>
-                  <div class="auth-step-body">
-                    <div class="auth-step-label">Enter the code</div>
-                    <div id="user-code" class="auth-value auth-code"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Dashboard screen: shown after auth -->
           <div id="dashboard-screen" style="display: none">
             <h2 id="dashboard-title"></h2>
@@ -54,7 +24,19 @@
 
           <!-- Error screen -->
           <div id="error-screen" style="display: none">
-            <p id="error-message"></p>
+            <div class="error-card">
+              <div class="error-card-left">
+                <h2>Something went wrong</h2>
+                <p>
+                  The dashboard could not be loaded. Please check your
+                  configuration or contact your administrator.
+                </p>
+              </div>
+              <div class="error-card-right">
+                <div class="error-detail-label">Error details</div>
+                <p id="error-message" class="error-detail-message"></p>
+              </div>
+            </div>
           </div>
         </main>
       </div>
