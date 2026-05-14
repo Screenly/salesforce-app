@@ -4,6 +4,10 @@ import { renderEmpty } from './utils'
 
 Chart.register(...registerables)
 
+if (new URLSearchParams(window.location.search).get('animations') === 'false') {
+  Chart.defaults.animation = false
+}
+
 const CHART_COLORS = [
   '#4F8EF7',
   '#AC1FFF',

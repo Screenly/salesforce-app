@@ -3,3 +3,4 @@ dist/
 .screenly/
 mock-data.yml
 *.local
+.DS_Store
