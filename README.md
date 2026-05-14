@@ -2,6 +2,8 @@
 
 Displays Salesforce dashboards on your Screenly digital signage screens using the Salesforce Reports & Dashboards REST API.
 
+![Salesforce Dashboard App Preview](screenshots/3840x2160.webp)
+
 ## Prerequisites
 
 - [Bun](https://bun.sh/) 1.2.2+
@@ -83,8 +85,10 @@ bun run screenshots
 
 This generates screenshots for all supported resolutions into the `screenshots/` directory using mocked API data. It produces two sets:
 
-- **Dashboard screenshots** (`<width>x<height>.png`): all standard Screenly resolutions, showing a fully rendered dashboard with bar, donut, line, and table widgets.
-- **Auth screen screenshots** (`auth-<width>x<height>.png`): 3840x2160 and 2160x3840 only, showing the Device Flow pairing screen.
+- **Dashboard screenshots** (`<width>x<height>.webp`): all standard Screenly resolutions, showing a fully rendered dashboard with bar, donut, line, and table widgets.
+- **Auth screen screenshots** (`auth-<width>x<height>.webp`): 3840x2160 and 2160x3840 only, showing the Device Flow pairing screen.
+
+![Auth screen screenshot](screenshots/auth-3840x2160.webp)
 
 ## Deployment
 
