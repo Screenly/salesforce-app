@@ -42,6 +42,22 @@ export interface ComponentDataItem {
   }
 }
 
+export interface GaugeBreak {
+  color: string
+  lowerBound: number
+  upperBound: number
+}
+
+export interface GaugeVisualizationProperties {
+  breakPoints: {
+    aggregateName: string
+    breaks: GaugeBreak[]
+  }[]
+  showPercentages: boolean
+  showRange: boolean
+  showTotal: boolean
+}
+
 export interface DashboardMetadataComponent {
   id: string
   header: string | null
@@ -50,8 +66,11 @@ export interface DashboardMetadataComponent {
   type: string
   properties: {
     visualizationType: string
+    visualizationProperties?:
+      | GaugeVisualizationProperties
+      | Record<string, unknown>
     aggregates: { name: string }[]
-    groupings: { name: string }[]
+    groupings: { name: string }[] | null
     tableColumns?: { column: string; type: string }[]
   }
 }
