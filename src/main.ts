@@ -10,6 +10,56 @@ import {
 import { getDashboardResults, AuthError } from './api'
 import { renderDashboard, showScreen, showError } from './render'
 
+type RefreshToken = () => Promise<void>
+
+async function fetchAndRender(
+  instanceUrl: string | null,
+  accessToken: string | null,
+  credentialError: Error | null,
+  dashboardId: string,
+  refreshToken: RefreshToken
+): Promise<void> {
+  if (!accessToken || !instanceUrl) {
+    showError(
+      credentialError?.message ?? 'No access token or instance URL available.'
+    )
+    signalReady()
+    return
+  }
+
+  try {
+    const results = await getDashboardResults(
+      instanceUrl,
+      accessToken,
+      dashboardId
+    )
+    renderDashboard(results)
+    showScreen('dashboard-screen')
+    signalReady()
+  } catch (err) {
+    if (!(err instanceof AuthError)) throw err
+
+    try {
+      await refreshToken()
+      const results = await getDashboardResults(
+        instanceUrl,
+        accessToken,
+        dashboardId
+      )
+      renderDashboard(results)
+      showScreen('dashboard-screen')
+      signalReady()
+    } catch (retryErr) {
+      showError(
+        retryErr instanceof Error
+          ? retryErr.message
+          : 'Session expired. Please re-authenticate.'
+      )
+      signalReady()
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   setupErrorHandling()
 
@@ -25,66 +75,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   let accessToken: string | null =
     getSettingWithDefault('access_token', '') || null
   let instanceUrl: string | null = null
+  let credentialError: Error | null = null
 
   const refreshToken = async () => {
     const { token, metadata } = await getCredentials()
     accessToken = token
     instanceUrl = (metadata?.instance_url as string) ?? instanceUrl
+    credentialError = null
   }
 
   try {
     await refreshToken()
   } catch (err) {
+    credentialError = err instanceof Error ? err : new Error(String(err))
     console.warn('Failed to fetch initial credentials:', err)
   }
 
   initTokenRefreshLoop(refreshToken)
 
-  const fetchAndRender = async () => {
-    if (!accessToken || !instanceUrl) {
-      showError('No access token or instance URL available.')
-      signalReady()
-      return
-    }
+  const run = () =>
+    fetchAndRender(
+      instanceUrl,
+      accessToken,
+      credentialError,
+      dashboardId,
+      refreshToken
+    )
 
-    try {
-      const results = await getDashboardResults(
-        instanceUrl,
-        accessToken,
-        dashboardId
-      )
-      renderDashboard(results)
-      showScreen('dashboard-screen')
-      signalReady()
-    } catch (err) {
-      if (!(err instanceof AuthError)) throw err
-
-      try {
-        await refreshToken()
-        const results = await getDashboardResults(
-          instanceUrl!,
-          accessToken!,
-          dashboardId
-        )
-        renderDashboard(results)
-        showScreen('dashboard-screen')
-        signalReady()
-      } catch (retryErr) {
-        showError(
-          retryErr instanceof Error
-            ? retryErr.message
-            : 'Session expired. Please re-authenticate.'
-        )
-        signalReady()
-      }
-    }
-  }
-
-  await fetchAndRender()
+  await run()
 
   setInterval(async () => {
     try {
-      await fetchAndRender()
+      await run()
     } catch (err) {
       console.error('Refresh failed:', err)
     }
