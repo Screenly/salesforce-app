@@ -99,10 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const clientId = getSettingWithDefault<string>('client_id', '')
   const dashboardId = getSettingWithDefault<string>('dashboard_id', '')
-  const refreshInterval = parseInt(
-    getSettingWithDefault<string>('refresh_interval', '300'),
-    10
-  )
+  const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
 
   if (!clientId || !dashboardId) {
     showError('Please configure the Client ID and Dashboard ID in settings.')

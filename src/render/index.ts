@@ -43,9 +43,20 @@ export function renderDashboard(results: DashboardResults): void {
 
   chartsGrid.innerHTML = ''
 
-  const metaMap = new Map(
-    results.dashboardMetadata.components.map((c) => [c.id, c])
-  )
+  const layout = results.dashboardMetadata.layout
+  const rowHeight = layout?.rowHeight ?? 36
+  const layoutComponents = layout?.components ?? []
+
+  const usedColumns =
+    layoutComponents.length > 0
+      ? Math.max(...layoutComponents.map((c) => c.column + c.colspan))
+      : (layout?.numColumns ?? 12)
+
+  chartsGrid.style.gridTemplateColumns = `repeat(${usedColumns}, 1fr)`
+  chartsGrid.style.gridAutoRows = `${rowHeight}px`
+
+  const metaComponents = results.dashboardMetadata.components
+  const metaMap = new Map(metaComponents.map((c) => [c.id, c]))
 
   for (const item of results.componentData.filter(
     (x): x is ComponentDataItem => x !== null
@@ -53,8 +64,16 @@ export function renderDashboard(results: DashboardResults): void {
     const meta = metaMap.get(item.componentId)
     if (!meta) continue
 
+    const metaIndex = metaComponents.indexOf(meta)
+    const pos = layoutComponents[metaIndex]
+
     const card = document.createElement('div')
     card.className = 'chart-card'
+
+    if (pos) {
+      card.style.gridColumn = `${pos.column + 1} / span ${pos.colspan}`
+      card.style.gridRow = `${pos.row + 1} / span ${pos.rowspan}`
+    }
 
     const title = document.createElement('h3')
     title.className = 'chart-title'

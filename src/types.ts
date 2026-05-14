@@ -68,11 +68,18 @@ export interface DashboardMetadataComponent {
     visualizationType: string
     visualizationProperties?:
       | GaugeVisualizationProperties
+      | { tableColumns?: { column: string; type: string }[] }
       | Record<string, unknown>
     aggregates: { name: string }[]
     groupings: { name: string }[] | null
-    tableColumns?: { column: string; type: string }[]
   }
+}
+
+export interface DashboardLayoutComponent {
+  row: number
+  column: number
+  rowspan: number
+  colspan: number
 }
 
 export interface DashboardResults {
@@ -80,6 +87,12 @@ export interface DashboardResults {
     name: string
     id: string
     components: DashboardMetadataComponent[]
+    layout?: {
+      components: DashboardLayoutComponent[]
+      numColumns: number
+      rowHeight: number
+      gridLayout: boolean
+    }
   }
   componentData: (ComponentDataItem | null)[]
 }

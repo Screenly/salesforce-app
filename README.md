@@ -38,7 +38,17 @@ bun install
 bun run dev
 ```
 
-This starts the dev server alongside a local CORS proxy on `http://127.0.0.1:8080`.
+This generates a `mock-data.yml` file (gitignored), starts the dev server, and starts a local CORS proxy on `http://127.0.0.1:8080`.
+
+After `mock-data.yml` is generated, fill in your values under `settings`:
+
+```yaml
+settings:
+  client_id: '<your Salesforce Connected App Consumer Key>'
+  dashboard_id: '<your Salesforce Dashboard ID>'
+  refresh_interval: '300'
+  display_errors: 'false'
+```
 
 ## Building
 

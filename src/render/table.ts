@@ -6,12 +6,20 @@ export function renderTable(
   meta: DashboardMetadataComponent,
   reportResult: ReportResult
 ): void {
-  const columns = meta.properties.tableColumns ?? []
+  const vizProps = meta.properties.visualizationProperties as
+    | { tableColumns?: { column: string }[] }
+    | undefined
+  const vizTableColumns = vizProps?.tableColumns ?? []
+
+  const detailColumns =
+    reportResult.reportMetadata?.detailColumns ??
+    vizTableColumns.map((c) => c.column)
+
   const columnInfo = reportResult.reportExtendedMetadata?.detailColumnInfo ?? {}
   const factMap = reportResult.factMap ?? {}
   const rows = Object.values(factMap).flatMap((entry) => entry.rows ?? [])
 
-  if (rows.length === 0) {
+  if (rows.length === 0 || detailColumns.length === 0) {
     renderEmpty(container)
     return
   }
@@ -21,9 +29,9 @@ export function renderTable(
 
   const thead = document.createElement('thead')
   const headerRow = document.createElement('tr')
-  for (const col of columns) {
+  for (const col of detailColumns) {
     const th = document.createElement('th')
-    th.textContent = columnInfo[col.column]?.label ?? col.column
+    th.textContent = columnInfo[col]?.label ?? col
     headerRow.appendChild(th)
   }
   thead.appendChild(headerRow)
@@ -32,9 +40,10 @@ export function renderTable(
   const tbody = document.createElement('tbody')
   for (const row of rows) {
     const tr = document.createElement('tr')
-    for (const cell of row.dataCells) {
+    for (let i = 0; i < detailColumns.length; i++) {
       const td = document.createElement('td')
-      td.textContent = String(cell.label ?? cell.value ?? '')
+      const cell = row.dataCells[i]
+      td.textContent = cell ? String(cell.label ?? cell.value ?? '') : ''
       tr.appendChild(td)
     }
     tbody.appendChild(tr)

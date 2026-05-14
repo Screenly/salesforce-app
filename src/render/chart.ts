@@ -4,7 +4,7 @@ import { renderEmpty } from './utils'
 
 Chart.register(...registerables)
 
-export const CHART_COLORS = [
+const CHART_COLORS = [
   '#4F8EF7',
   '#AC1FFF',
   '#00C9A7',
@@ -24,9 +24,7 @@ export const CHART_TYPES = new Set([
   'doughnut',
 ])
 
-export function mapChartType(
-  sfType: string
-): 'bar' | 'line' | 'pie' | 'doughnut' {
+function mapChartType(sfType: string): 'bar' | 'line' | 'pie' | 'doughnut' {
   const t = sfType.toLowerCase()
   if (t === 'donut') return 'doughnut'
   if (t === 'bar' || t === 'column') return 'bar'

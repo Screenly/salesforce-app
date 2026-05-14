@@ -86,10 +86,10 @@ main {
 
 #charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 24px;
+  gap: 8px;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
+  align-content: start;
 }
 
 .chart-card {
@@ -114,6 +114,7 @@ main {
   flex: 1;
   position: relative;
   min-height: 0;
+  overflow: hidden;
 }
 
 /* Error screen */
@@ -132,4 +133,28 @@ main {
   font-size: 0.9rem;
   text-align: center;
   margin: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10rem;
+}
+
+.data-table th {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
 }
