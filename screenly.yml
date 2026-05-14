@@ -40,23 +40,3 @@ settings:
         help_text: For debugging purposes to display errors on the screen.
         type: boolean
       schema_version: 1
-  enable_analytics:
-    type: string
-    default_value: 'true'
-    title: enable_analytics
-    optional: true
-    help_text: Whether to enable analytics or not
-    is_global: true
-  sentry_dsn:
-    type: secret
-    title: Sentry Client Key
-    optional: true
-    help_text: Sentry Client Key from Sentry SDK for error capturing.
-    is_global: true
-  tag_manager_id:
-    type: string
-    default_value: ''
-    title: tag_manager_id
-    optional: true
-    help_text: Specify a Google Tag Manager ID
-    is_global: true

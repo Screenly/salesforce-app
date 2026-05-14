@@ -87,9 +87,6 @@ screenly edge-app instance create
 | `dashboard_id`     | string | Yes      | Salesforce Dashboard ID (found in the dashboard URL)                      |
 | `refresh_interval` | string | No       | How often (in seconds) to refresh dashboard data. Default: `300`          |
 | `display_errors`   | string | No       | Display errors on screen for debugging (`true`/`false`). Default: `false` |
-| `enable_analytics` | string | No       | Enable analytics (`true`/`false`). Default: `true`                        |
-| `tag_manager_id`   | string | No       | Google Tag Manager ID                                                     |
-| `sentry_dsn`       | secret | No       | Sentry DSN for error tracking                                             |
 
 ## Authentication
 
@@ -104,3 +101,17 @@ Navigate to a dashboard in Salesforce. The Dashboard ID is in the URL:
                         ^^^^^^^^^^^^^^^^
                         This is your Dashboard ID
 ```
+
+## Supported Visualizations
+
+The app renders dashboard components based on the visualization type configured in Salesforce:
+
+| Visualization Type | Rendering            | Notes                                         |
+| ------------------ | -------------------- | --------------------------------------------- |
+| `Bar`              | Horizontal bar chart | Grouped by report row groupings               |
+| `Column`           | Vertical bar chart   | Grouped by report row groupings               |
+| `Line`             | Line chart           | Grouped by report row groupings               |
+| `Pie`              | Pie chart            | Grouped by report row groupings               |
+| `Donut`            | Doughnut chart       | Grouped by report row groupings               |
+| `Gauge`            | Gauge chart          | Requires breakpoints configured in Salesforce |
+| `FlexTable`        | HTML table           | Tabular reports with detail rows              |
