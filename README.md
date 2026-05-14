@@ -71,9 +71,7 @@ bun test
 bun run screenshots
 ```
 
-This generates screenshots for all supported resolutions into the `screenshots/` directory using mocked API data. It produces dashboard screenshots (`<width>x<height>.webp`) for all standard Screenly resolutions, showing a fully rendered dashboard with bar, donut, line, and table widgets.
-
-![Auth screen screenshot](screenshots/auth-3840x2160.webp)
+This generates screenshots for all supported resolutions into the `screenshots/` directory using mocked API data. It produces dashboard screenshots (`<width>x<height>.png`) for all standard Screenly resolutions, showing a fully rendered dashboard with bar, donut, line, and table widgets.
 
 ## Deployment
 

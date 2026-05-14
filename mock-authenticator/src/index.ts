@@ -23,15 +23,11 @@ app.set('views', path.join(__dirname, 'views'))
 
 app.use(
   '/vendor/htmx',
-  express.static(
-    path.join(__dirname, '..', 'node_modules', 'htmx.org', 'dist')
-  )
+  express.static(path.join(__dirname, '..', 'node_modules', 'htmx.org', 'dist'))
 )
 app.use(
   '/vendor/alpine',
-  express.static(
-    path.join(__dirname, '..', 'node_modules', 'alpinejs', 'dist')
-  )
+  express.static(path.join(__dirname, '..', 'node_modules', 'alpinejs', 'dist'))
 )
 
 app.get('/', (_req, res) => {
@@ -100,12 +96,20 @@ app.post('/poll', express.urlencoded({ extended: false }), async (req, res) => {
   }
 
   if (data.error === 'authorization_pending' || data.error === 'slow_down') {
-    const nextInterval = data.error === 'slow_down' ? Number(interval) + 5 : Number(interval)
-    res.render('poll-status', { status: 'pending', device_code, interval: nextInterval })
+    const nextInterval =
+      data.error === 'slow_down' ? Number(interval) + 5 : Number(interval)
+    res.render('poll-status', {
+      status: 'pending',
+      device_code,
+      interval: nextInterval,
+    })
     return
   }
 
-  res.status(400).render('poll-status', { status: 'error', error: data.error ?? 'Unknown error' })
+  res.status(400).render('poll-status', {
+    status: 'error',
+    error: data.error ?? 'Unknown error',
+  })
 })
 
 // Matches the shape expected by getCredentials() in @screenly/edge-apps.
@@ -113,7 +117,9 @@ app.post('/poll', express.urlencoded({ extended: false }), async (req, res) => {
 app.get('/access_token/', (_req, res) => {
   const tokens = loadTokens()
   if (!tokens) {
-    res.status(404).json({ error: 'No tokens stored. Please authenticate first.' })
+    res
+      .status(404)
+      .json({ error: 'No tokens stored. Please authenticate first.' })
     return
   }
   res.json({

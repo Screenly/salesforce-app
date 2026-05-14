@@ -273,3 +273,33 @@ for (const { width, height } of RESOLUTIONS) {
     )
   })
 }
+
+for (const [width, height] of [[3840, 2160], [2160, 3840]]) {
+  test(`screenshot error ${width}x${height}`, async ({ browser }) => {
+    await takeScreenshot(
+      browser,
+      width,
+      height,
+      `error-${width}x${height}.png`,
+      async (context) => {
+        await context.route(/access_token\//, async (route) => {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(MOCK_CREDENTIALS),
+          })
+        })
+        await context.route(/analytics\/dashboards/, async (route) => {
+          await route.fulfill({
+            status: 401,
+            contentType: 'application/json',
+            body: JSON.stringify({ message: 'Unauthorized' }),
+          })
+        })
+      },
+      async (page) => {
+        await page.waitForLoadState('networkidle')
+      }
+    )
+  })
+}

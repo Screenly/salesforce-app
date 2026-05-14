@@ -29,9 +29,10 @@ export function saveTokens(tokens: StoredTokens): void {
 export function loadTokens(): StoredTokens | null {
   return (
     db
-      .query<StoredTokens, []>(
-        'SELECT access_token, refresh_token, instance_url FROM tokens LIMIT 1'
-      )
+      .query<
+        StoredTokens,
+        []
+      >('SELECT access_token, refresh_token, instance_url FROM tokens LIMIT 1')
       .get() ?? null
   )
 }

@@ -7,7 +7,7 @@ import {
   setupErrorHandling,
   signalReady,
 } from '@screenly/edge-apps'
-import { getDashboardResults } from './api'
+import { getDashboardResults, AuthError } from './api'
 import { renderDashboard, showScreen, showError } from './render'
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -32,12 +32,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     instanceUrl = (metadata?.instance_url as string) ?? instanceUrl
   }
 
-  if (!accessToken) {
-    try {
-      await refreshToken()
-    } catch (err) {
-      console.warn('Failed to fetch initial access token:', err)
-    }
+  try {
+    await refreshToken()
+  } catch (err) {
+    console.warn('Failed to fetch initial credentials:', err)
   }
 
   initTokenRefreshLoop(refreshToken)
@@ -49,14 +47,37 @@ document.addEventListener('DOMContentLoaded', async () => {
       return
     }
 
-    const results = await getDashboardResults(
-      instanceUrl,
-      accessToken,
-      dashboardId
-    )
-    renderDashboard(results)
-    showScreen('dashboard-screen')
-    signalReady()
+    try {
+      const results = await getDashboardResults(
+        instanceUrl,
+        accessToken,
+        dashboardId
+      )
+      renderDashboard(results)
+      showScreen('dashboard-screen')
+      signalReady()
+    } catch (err) {
+      if (!(err instanceof AuthError)) throw err
+
+      try {
+        await refreshToken()
+        const results = await getDashboardResults(
+          instanceUrl!,
+          accessToken!,
+          dashboardId
+        )
+        renderDashboard(results)
+        showScreen('dashboard-screen')
+        signalReady()
+      } catch (retryErr) {
+        showError(
+          retryErr instanceof Error
+            ? retryErr.message
+            : 'Session expired. Please re-authenticate.'
+        )
+        signalReady()
+      }
+    }
   }
 
   await fetchAndRender()

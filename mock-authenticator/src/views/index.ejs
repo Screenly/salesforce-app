@@ -195,7 +195,15 @@
   </head>
   <body>
     <% if (tokens) { %>
-      <div class="card" x-data="{ copied: null }">
+      <div class="card" x-data="{
+        copied: null,
+        tokens: {
+          access_token: document.getElementById('data-access-token').textContent,
+          refresh_token: document.getElementById('data-refresh-token').textContent
+        }
+      }">
+        <template id="data-access-token" style="display:none"><%= tokens.access_token %></template>
+        <template id="data-refresh-token" style="display:none"><%= tokens.refresh_token %></template>
         <div class="card-left">
           <h1>Connected to<br />Salesforce</h1>
           <p>Tokens are ready for the Edge App.</p>
@@ -206,14 +214,14 @@
             <div class="field-label">Access Token</div>
             <div class="token-value"><%= tokens.access_token %></div>
             <button class="copy-btn" title="Copy"
-              @click="navigator.clipboard.writeText('<%= tokens.access_token %>'); copied = 'access'">&#128203;</button>
+              @click="navigator.clipboard.writeText(tokens.access_token); copied = 'access'">&#128203;</button>
             <span x-show="copied === 'access'" x-transition style="font-size:0.75rem;color:#00c9a7;margin-left:0.5rem">Copied!</span>
           </div>
           <div class="token-field">
             <div class="field-label">Refresh Token</div>
             <div class="token-value"><%= tokens.refresh_token %></div>
             <button class="copy-btn" title="Copy"
-              @click="navigator.clipboard.writeText('<%= tokens.refresh_token %>'); copied = 'refresh'">&#128203;</button>
+              @click="navigator.clipboard.writeText(tokens.refresh_token); copied = 'refresh'">&#128203;</button>
             <span x-show="copied === 'refresh'" x-transition style="font-size:0.75rem;color:#00c9a7;margin-left:0.5rem">Copied!</span>
           </div>
           <div class="token-field">

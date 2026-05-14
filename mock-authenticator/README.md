@@ -33,9 +33,10 @@ Fill in your Salesforce Connected App Consumer Key in `.env`:
 SF_CLIENT_ID=your_salesforce_consumer_key_here
 ```
 
-Then start the server:
+Then install dependencies and start the server:
 
 ```bash
+bun install
 bun run dev
 ```
 
@@ -51,13 +52,13 @@ Open `http://localhost:3000` in a browser and click **Authenticate with Salesfor
 
 ## Endpoints
 
-| Endpoint         | Description                                                       |
-| ---------------- | ----------------------------------------------------------------- |
-| `GET /`          | UI showing auth status, tokens, and controls                      |
-| `POST /start`    | Initiates a new Device Flow                                       |
-| `POST /poll`     | Polls Salesforce for token (used internally by HTMX)             |
+| Endpoint             | Description                                                      |
+| -------------------- | ---------------------------------------------------------------- |
+| `GET /`              | UI showing auth status, tokens, and controls                     |
+| `POST /start`        | Initiates a new Device Flow                                      |
+| `POST /poll`         | Polls Salesforce for token (used internally by HTMX)             |
 | `GET /access_token/` | Returns `{ token, metadata: { instance_url } }` for the Edge App |
-| `POST /clear`    | Clears stored tokens                                              |
+| `POST /clear`        | Clears stored tokens                                             |
 
 ## Connecting to the Edge App
 

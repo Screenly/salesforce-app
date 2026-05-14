@@ -3,7 +3,7 @@
 :root {
   --card-bg: rgba(255, 255, 255, 0.07);
   --card-border: rgba(255, 255, 255, 0.18);
-  --card-padding: 24px;
+  --card-padding: 1.5rem;
 }
 
 body {
@@ -21,9 +21,9 @@ app-header {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 24px;
+  padding: 1.5rem;
   box-sizing: border-box;
-  gap: 24px;
+  gap: 1.5rem;
 }
 
 main {
@@ -44,12 +44,12 @@ main {
 #dashboard-title {
   font-size: 1.8rem;
   color: #fff;
-  margin: 0 0 16px 0;
+  margin: 0 0 1rem 0;
 }
 
 #charts-grid {
   display: grid;
-  gap: 16px;
+  gap: 1rem;
   flex: 1;
   overflow: auto;
   align-content: start;
@@ -62,7 +62,7 @@ main {
   padding: var(--card-padding);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
   min-height: 0;
 }
 
@@ -86,9 +86,86 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1.2rem;
-  text-align: center;
+}
+
+.error-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  max-width: 960px;
+  width: 100%;
+  color: #fff;
+}
+
+.error-card-left {
+  background: rgba(255, 80, 80, 0.08);
+  border-right: 1px solid rgba(255, 80, 80, 0.2);
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 1rem;
+  flex: 0 0 320px;
+}
+
+.error-card-left h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ff6b6b;
+  margin: 0;
+}
+
+.error-card-left p {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.error-card-right {
+  flex: 1;
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.error-detail-label {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.error-detail-message {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+@media (orientation: portrait) {
+  .error-card {
+    flex-direction: column;
+    max-width: 100%;
+  }
+
+  .error-card-left {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 80, 80, 0.2);
+    padding: 2.5rem 2rem;
+  }
+
+  .error-card-right {
+    padding: 2.5rem 2rem;
+  }
 }
 
 .empty-state {
