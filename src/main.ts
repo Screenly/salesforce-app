@@ -7,18 +7,25 @@ import {
   setupErrorHandling,
   signalReady,
 } from '@screenly/edge-apps'
-import { getDashboardResults, AuthError } from './api'
-import { renderDashboard, showScreen, showError } from './render'
+import { getDashboardResults, getReportResults, AuthError } from './api'
+import { inferSalesforceContentType } from './content'
+import { renderDashboard, renderReport, showScreen, showError } from './render'
 
 type RefreshToken = () => Promise<void>
+type RuntimeState = {
+  accessToken: string | null
+  instanceUrl: string | null
+  credentialError: Error | null
+}
 
 async function fetchAndRender(
-  instanceUrl: string | null,
-  accessToken: string | null,
-  credentialError: Error | null,
-  dashboardId: string,
+  contentId: string,
+  getRuntimeState: () => RuntimeState,
   refreshToken: RefreshToken
 ): Promise<void> {
+  const contentType = inferSalesforceContentType(contentId)
+  let { accessToken, instanceUrl, credentialError } = getRuntimeState()
+
   if (!accessToken || !instanceUrl) {
     showError(
       credentialError?.message ?? 'No access token or instance URL available.'
@@ -28,12 +35,21 @@ async function fetchAndRender(
   }
 
   try {
-    const results = await getDashboardResults(
-      instanceUrl,
-      accessToken,
-      dashboardId
-    )
-    renderDashboard(results)
+    if (contentType === 'dashboard') {
+      const results = await getDashboardResults(
+        instanceUrl,
+        accessToken,
+        contentId
+      )
+      renderDashboard(results)
+    } else {
+      const results = await getReportResults(
+        instanceUrl,
+        accessToken,
+        contentId
+      )
+      renderReport(contentId, results)
+    }
     showScreen('dashboard-screen')
     signalReady()
   } catch (err) {
@@ -41,12 +57,27 @@ async function fetchAndRender(
 
     try {
       await refreshToken()
-      const results = await getDashboardResults(
-        instanceUrl,
-        accessToken,
-        dashboardId
-      )
-      renderDashboard(results)
+      ;({ accessToken, instanceUrl } = getRuntimeState())
+
+      if (!accessToken || !instanceUrl) {
+        throw new Error('No access token or instance URL available.')
+      }
+
+      if (contentType === 'dashboard') {
+        const results = await getDashboardResults(
+          instanceUrl,
+          accessToken,
+          contentId
+        )
+        renderDashboard(results)
+      } else {
+        const results = await getReportResults(
+          instanceUrl,
+          accessToken,
+          contentId
+        )
+        renderReport(contentId, results)
+      }
       showScreen('dashboard-screen')
       signalReady()
     } catch (retryErr) {
@@ -63,11 +94,13 @@ async function fetchAndRender(
 document.addEventListener('DOMContentLoaded', async () => {
   setupErrorHandling()
 
-  const dashboardId = getSettingWithDefault<string>('dashboard_id', '')
+  const contentId =
+    getSettingWithDefault<string>('content_id', '') ||
+    getSettingWithDefault<string>('dashboard_id', '')
   const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
 
-  if (!dashboardId) {
-    showError('Please configure the Dashboard ID in settings.')
+  if (!contentId) {
+    showError('Please configure the Salesforce Content ID in settings.')
     signalReady()
     return
   }
@@ -93,14 +126,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initTokenRefreshLoop(refreshToken)
 
-  const run = () =>
-    fetchAndRender(
-      instanceUrl,
-      accessToken,
-      credentialError,
-      dashboardId,
-      refreshToken
-    )
+  const getRuntimeState = (): RuntimeState => ({
+    accessToken,
+    instanceUrl,
+    credentialError,
+  })
+
+  const run = () => fetchAndRender(contentId, getRuntimeState, refreshToken)
 
   await run()
 

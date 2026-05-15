@@ -1,11 +1,12 @@
 ---
 syntax: manifest_v1
-description: Display Salesforce dashboards on your Screenly screens
+description: Display Salesforce dashboards and reports on your Screenly screens
 icon: https://playground.srly.io/edge-apps/salesforce-app/static/images/icon.svg
 author: Screenly, Inc.
 categories:
-- CRM
-- Dashboard
+  - CRM
+  - Dashboard
+  - Report
 ready_signal: true
 settings:
   access_token:
@@ -17,15 +18,11 @@ settings:
         help_text: For testing only. In production, the access token should be fetched dynamically via the API.
         type: oauth:salesforce:access_token
       schema_version: 1
-  dashboard_id:
+  content_id:
     type: string
-    title: Dashboard ID
+    title: Content ID
     optional: false
-    help_text:
-      properties:
-        help_text: Select the Salesforce Dashboard to display.
-        type: oauth:salesforce:dashboard_id
-      schema_version: 1
+    help_text: Enter a Salesforce dashboard ID or report ID. The app infers the content type from the ID prefix.
   display_errors:
     type: string
     default_value: 'false'
@@ -42,4 +39,4 @@ settings:
     default_value: '300'
     title: Refresh Interval (seconds)
     optional: true
-    help_text: How often to refresh dashboard data. Defaults to 300 seconds (5 minutes).
+    help_text: How often to refresh Salesforce data. Defaults to 300 seconds (5 minutes).

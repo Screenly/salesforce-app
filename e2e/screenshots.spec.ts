@@ -11,6 +11,7 @@ import path from 'path'
 
 const MOCK_INSTANCE_URL = 'https://mock.salesforce.com'
 const MOCK_DASHBOARD_ID = '01Z000000000001AAA'
+const MOCK_REPORT_ID = '00O000000000001AAA'
 
 const MOCK_CREDENTIALS = {
   token: 'mock-access-token',
@@ -33,7 +34,9 @@ const SUMMARY_REPORT_RESULT = {
   },
   groupingsAcross: { groupings: [] },
   reportExtendedMetadata: {
-    aggregateColumnInfo: { RowCount: { dataType: 'int', label: 'Record Count' } },
+    aggregateColumnInfo: {
+      RowCount: { dataType: 'int', label: 'Record Count' },
+    },
     detailColumnInfo: {},
   },
   reportMetadata: { aggregates: ['RowCount'], detailColumns: [] },
@@ -75,7 +78,9 @@ const MOCK_DASHBOARD_RESPONSE = {
         },
         groupingsAcross: { groupings: [] },
         reportExtendedMetadata: {
-          aggregateColumnInfo: { SUM_AMOUNT: { dataType: 'currency', label: 'Amount' } },
+          aggregateColumnInfo: {
+            SUM_AMOUNT: { dataType: 'currency', label: 'Amount' },
+          },
           detailColumnInfo: {},
         },
         reportMetadata: { aggregates: ['SUM_AMOUNT'], detailColumns: [] },
@@ -206,24 +211,118 @@ const MOCK_DASHBOARD_RESPONSE = {
   },
 }
 
-const { screenlyJsContent } = createMockScreenlyForScreenshots(
-  { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
-  {
-    dashboard_id: MOCK_DASHBOARD_ID,
-    refresh_interval: '300',
-    display_errors: 'false',
-    screenly_oauth_tokens_url: 'http://localhost:3000/',
-    screenly_app_auth_token: 'mock-token',
-  }
-)
+const MOCK_REPORT_RESPONSE = {
+  factMap: {
+    '0!T': {
+      aggregates: [{ label: '1', value: 1 }],
+      rows: [
+        {
+          dataCells: [
+            { label: '-', value: null },
+            { label: 'Nico Miguelino', value: '005g5000006gca5AAA' },
+            { label: 'Dummy Account #2', value: '001g500000MWC1NAAX' },
+            { label: '-', value: null },
+            { label: 'Cold', value: 'Cold' },
+            { label: '5/13/2026', value: '2026-05-13' },
+          ],
+        },
+      ],
+    },
+    '1!T': {
+      aggregates: [{ label: '1', value: 1 }],
+      rows: [
+        {
+          dataCells: [
+            { label: '-', value: null },
+            { label: 'Nico Miguelino', value: '005g5000006gca5AAA' },
+            { label: 'Dummy Account #1', value: '001g500000MULciAAH' },
+            { label: '-', value: null },
+            { label: 'Hot', value: 'Hot' },
+            { label: '5/13/2026', value: '2026-05-13' },
+          ],
+        },
+      ],
+    },
+    'T!T': { aggregates: [{ label: '2', value: 2 }], rows: [] },
+  },
+  groupingsDown: {
+    groupings: [
+      { key: '0', label: '-' },
+      { key: '1', label: 'Customer - Direct' },
+    ],
+  },
+  groupingsAcross: { groupings: [] },
+  hasDetailRows: true,
+  reportExtendedMetadata: {
+    aggregateColumnInfo: {
+      RowCount: { dataType: 'int', label: 'Record Count' },
+    },
+    detailColumnInfo: {
+      DUE_DATE: { dataType: 'date', label: 'Last Activity' },
+      'USERS.NAME': { dataType: 'string', label: 'Account Owner' },
+      'ACCOUNT.NAME': { dataType: 'string', label: 'Account Name' },
+      ADDRESS1_STATE: {
+        dataType: 'string',
+        label: 'Billing State/Province (text only)',
+      },
+      RATING: { dataType: 'picklist', label: 'Rating' },
+      LAST_UPDATE: { dataType: 'date', label: 'Last Modified Date' },
+    },
+  },
+  reportMetadata: {
+    name: 'Dummy Accounts Report #1',
+    chart: {
+      chartType: 'Donut',
+    },
+    aggregates: ['RowCount'],
+    detailColumns: [
+      'DUE_DATE',
+      'USERS.NAME',
+      'ACCOUNT.NAME',
+      'ADDRESS1_STATE',
+      'RATING',
+      'LAST_UPDATE',
+    ],
+    reportFormat: 'SUMMARY',
+  },
+}
+
+const { screenlyJsContent: dashboardScreenlyJsContent } =
+  createMockScreenlyForScreenshots(
+    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    {
+      content_id: MOCK_DASHBOARD_ID,
+      refresh_interval: '300',
+      display_errors: 'false',
+      screenly_oauth_tokens_url: 'http://localhost:3000/',
+      screenly_app_auth_token: 'mock-token',
+    }
+  )
+
+const { screenlyJsContent: reportScreenlyJsContent } =
+  createMockScreenlyForScreenshots(
+    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    {
+      content_id: MOCK_REPORT_ID,
+      refresh_interval: '300',
+      display_errors: 'false',
+      screenly_oauth_tokens_url: 'http://localhost:3000/',
+      screenly_app_auth_token: 'mock-token',
+    }
+  )
 
 async function takeScreenshot(
   browser: Browser,
   width: number,
   height: number,
   filename: string,
+  screenlyJsContent: string,
   setup: (context: Awaited<ReturnType<Browser['newContext']>>) => Promise<void>,
-  waitFor: (page: Awaited<ReturnType<Awaited<ReturnType<Browser['newContext']>>['newPage']>>) => Promise<void>
+  waitFor: (
+    page: Awaited<
+      ReturnType<Awaited<ReturnType<Browser['newContext']>>['newPage']>
+    >
+  ) => Promise<void>
 ): Promise<void> {
   const screenshotsDir = getScreenshotsDir()
   const context = await browser.newContext({ viewport: { width, height } })
@@ -245,12 +344,13 @@ async function takeScreenshot(
 }
 
 for (const { width, height } of RESOLUTIONS) {
-  test(`screenshot ${width}x${height}`, async ({ browser }) => {
+  test(`screenshot dashboard ${width}x${height}`, async ({ browser }) => {
     await takeScreenshot(
       browser,
       width,
       height,
-      `${width}x${height}.png`,
+      `dashboard-${width}x${height}.png`,
+      dashboardScreenlyJsContent,
       async (context) => {
         await context.route(/access_token\//, async (route) => {
           await route.fulfill({
@@ -274,13 +374,17 @@ for (const { width, height } of RESOLUTIONS) {
   })
 }
 
-for (const [width, height] of [[3840, 2160], [2160, 3840]]) {
+for (const [width, height] of [
+  [3840, 2160],
+  [2160, 3840],
+]) {
   test(`screenshot error ${width}x${height}`, async ({ browser }) => {
     await takeScreenshot(
       browser,
       width,
       height,
       `error-${width}x${height}.png`,
+      dashboardScreenlyJsContent,
       async (context) => {
         await context.route(/access_token\//, async (route) => {
           await route.fulfill({
@@ -294,6 +398,40 @@ for (const [width, height] of [[3840, 2160], [2160, 3840]]) {
             status: 401,
             contentType: 'application/json',
             body: JSON.stringify({ message: 'Unauthorized' }),
+          })
+        })
+      },
+      async (page) => {
+        await page.waitForLoadState('networkidle')
+      }
+    )
+  })
+}
+
+for (const [width, height] of [
+  [3840, 2160],
+  [2160, 3840],
+]) {
+  test(`screenshot report ${width}x${height}`, async ({ browser }) => {
+    await takeScreenshot(
+      browser,
+      width,
+      height,
+      `report-${width}x${height}.png`,
+      reportScreenlyJsContent,
+      async (context) => {
+        await context.route(/access_token\//, async (route) => {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(MOCK_CREDENTIALS),
+          })
+        })
+        await context.route(/analytics\/reports/, async (route) => {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(MOCK_REPORT_RESPONSE),
           })
         })
       },

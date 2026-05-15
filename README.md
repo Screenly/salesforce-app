@@ -1,8 +1,8 @@
-# Salesforce Dashboard App
+# Salesforce Analytics App
 
-Displays Salesforce dashboards on your Screenly digital signage screens using the Salesforce Reports & Dashboards REST API.
+Displays Salesforce dashboards and reports on your Screenly digital signage screens using the Salesforce Reports & Dashboards REST API.
 
-![Salesforce Dashboard App Preview](screenshots/3840x2160.webp)
+![Salesforce Analytics App Preview](screenshots/dashboard-3840x2160.webp)
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ After `mock-data.yml` is generated, fill in your values under `settings`:
 
 ```yaml
 settings:
-  dashboard_id: '<your Salesforce Dashboard ID>'
+  content_id: '<your Salesforce dashboard or report ID>'
   display_errors: 'false'
   refresh_interval: '300'
   screenly_app_auth_token: mock-token
@@ -71,7 +71,7 @@ bun test
 bun run screenshots
 ```
 
-This generates screenshots for all supported resolutions into the `screenshots/` directory using mocked API data. It produces dashboard screenshots (`<width>x<height>.png`) for all standard Screenly resolutions, showing a fully rendered dashboard with bar, donut, line, and table widgets.
+This generates screenshots for all supported resolutions into the `screenshots/` directory using mocked API data. Dashboard screenshots are named `dashboard-<width>x<height>.png`, error screenshots are named `error-<width>x<height>.png`, and report screenshots are named `report-<width>x<height>.png`.
 
 ## Deployment
 
@@ -86,15 +86,15 @@ screenly edge-app instance create
 | Setting            | Type   | Required | Description                                                                    |
 | ------------------ | ------ | -------- | ------------------------------------------------------------------------------ |
 | `access_token`     | secret | No       | For testing only. In production, the token is fetched dynamically via the API. |
-| `dashboard_id`     | string | Yes      | Salesforce Dashboard ID to display                                             |
-| `refresh_interval` | string | No       | How often (in seconds) to refresh dashboard data. Default: `300`               |
+| `content_id`       | string | Yes      | Salesforce dashboard ID or report ID to display                                |
+| `refresh_interval` | string | No       | How often (in seconds) to refresh Salesforce data. Default: `300`              |
 | `display_errors`   | string | No       | Display errors on screen for debugging (`true`/`false`). Default: `false`      |
 
 ## Authentication
 
 This app uses the Screenly OAuth service to obtain a Salesforce access token at runtime. For local development, the `mock-authenticator` acts as a stand-in for that service.
 
-## Finding Your Dashboard ID
+## Finding Your Content ID
 
 Navigate to a dashboard in Salesforce. The Dashboard ID is in the URL:
 
@@ -104,9 +104,29 @@ Navigate to a dashboard in Salesforce. The Dashboard ID is in the URL:
                         This is your Dashboard ID
 ```
 
+Navigate to a report in Salesforce. The Report ID is in the URL:
+
+```
+/lightning/r/Report/00OXX000000XXXXX/view
+                     ^^^^^^^^^^^^^^^^
+                     This is your Report ID
+```
+
+The app infers the content type from the first 3 characters of the ID:
+
+| Prefix | Content Type |
+| ------ | ------------ |
+| `01Z`  | Dashboard    |
+| `00O`  | Report       |
+
+This behavior follows Salesforce's official key-prefix documentation:
+
+- [Salesforce Entity Key Prefix Decoder](https://help.salesforce.com/s/articleView?id=000385203&language=en_US&type=1)
+- [Find Object type from Record ID prefix](https://help.salesforce.com/s/articleView?id=How-to-find-Object-Type-from-Record-ID-Prefix&language=en_US&type=1)
+
 ## Supported Visualizations
 
-The app renders dashboard components based on the visualization type configured in Salesforce:
+For dashboards, the app renders components based on the visualization type configured in Salesforce:
 
 | Visualization Type | Rendering            | Notes                                         |
 | ------------------ | -------------------- | --------------------------------------------- |
@@ -117,3 +137,9 @@ The app renders dashboard components based on the visualization type configured 
 | `Donut`            | Doughnut chart       | Grouped by report row groupings               |
 | `Gauge`            | Gauge chart          | Requires breakpoints configured in Salesforce |
 | `FlexTable`        | HTML table           | Tabular reports with detail rows              |
+
+For direct report IDs, the app uses the report response shape to choose a presentation:
+
+- Detail rows present: render as a table
+- Grouped aggregate data present: render as a chart
+- Single aggregate only: render as a KPI-style value card

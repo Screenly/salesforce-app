@@ -1,6 +1,6 @@
 # Mock Authenticator
 
-A temporary local OAuth helper for the Salesforce Dashboard Edge App POC. It handles the Salesforce OAuth 2.0 Device Flow, stores the resulting tokens in SQLite, and exposes them via an endpoint that mimics the Screenly OAuth service.
+A temporary local OAuth helper for the Salesforce Analytics Edge App POC. It handles the Salesforce OAuth 2.0 Device Flow, stores the resulting tokens in SQLite, and exposes them via an endpoint that mimics the Screenly OAuth service.
 
 ## Prerequisites
 
@@ -66,6 +66,7 @@ In `mock-data.yml` (at the repository root), set:
 
 ```yaml
 settings:
+  content_id: '01Z... or 00O...'
   screenly_oauth_tokens_url: 'http://localhost:3000/'
   screenly_app_auth_token: mock-token
 ```
