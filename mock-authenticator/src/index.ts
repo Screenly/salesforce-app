@@ -21,6 +21,7 @@ app.use(cors())
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'views'))
 
+app.use(express.static(path.join(__dirname, '..', 'public')))
 app.use(
   '/vendor/htmx',
   express.static(path.join(__dirname, '..', 'node_modules', 'htmx.org', 'dist'))
