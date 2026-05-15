@@ -408,6 +408,35 @@ for (const [width, height] of [
   })
 }
 
+test('screenshot error-not-found 3840x2160', async ({ browser }) => {
+  await takeScreenshot(
+    browser,
+    3840,
+    2160,
+    'error-not-found-3840x2160.png',
+    dashboardScreenlyJsContent,
+    async (context) => {
+      await context.route(/access_token\//, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(MOCK_CREDENTIALS),
+        })
+      })
+      await context.route(/analytics\/dashboards/, async (route) => {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({ message: 'Not Found' }),
+        })
+      })
+    },
+    async (page) => {
+      await page.waitForLoadState('networkidle')
+    }
+  )
+})
+
 for (const [width, height] of [
   [3840, 2160],
   [2160, 3840],

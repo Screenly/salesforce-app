@@ -23,6 +23,10 @@ async function apiFetch<T>(
   })
 
   if (res.status === 401) throw new AuthError(`Unauthorized: ${path}`)
+  if (res.status === 404)
+    throw new Error(
+      'The selected content could not be found. Please verify that it still exists in Salesforce.'
+    )
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
   return res.json() as Promise<T>
 }
