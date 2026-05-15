@@ -43,7 +43,15 @@ async function fetchAndRender(
   getRuntimeState: () => RuntimeState,
   refreshToken: RefreshToken
 ): Promise<void> {
-  const contentType = inferSalesforceContentType(contentId)
+  let contentType: ReturnType<typeof inferSalesforceContentType>
+  try {
+    contentType = inferSalesforceContentType(contentId)
+  } catch (err) {
+    showError(err instanceof Error ? err.message : 'Unsupported content ID.')
+    signalReady()
+    return
+  }
+
   let { accessToken, instanceUrl } = getRuntimeState()
   const { credentialError } = getRuntimeState()
 
@@ -60,16 +68,20 @@ async function fetchAndRender(
     showScreen('dashboard-screen')
     signalReady()
   } catch (err) {
-    if (!(err instanceof AuthError)) throw err
+    if (!(err instanceof AuthError)) {
+      showError(err instanceof Error ? err.message : 'Failed to load content.')
+      signalReady()
+      return
+    }
 
     try {
       await refreshToken()
       ;({ accessToken, instanceUrl } = getRuntimeState())
 
       if (!accessToken || !instanceUrl) {
-        throw new Error('No access token or instance URL available.', {
-          cause: err,
-        })
+        showError('No access token or instance URL available.')
+        signalReady()
+        return
       }
 
       await loadAndRenderContent(
