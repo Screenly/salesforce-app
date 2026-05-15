@@ -150,7 +150,7 @@ function renderReportChartCard(
   contentId: string,
   reportResult: ReportResult,
   reportName: string,
-  reportChartType: string
+  chartType: string = 'Column'
 ): boolean {
   if (!hasGroupedReportData(reportResult)) {
     return false
@@ -161,32 +161,7 @@ function renderReportChartCard(
     containerClassName: 'report-chart-container',
   })
 
-  renderChart(
-    chartContainer,
-    contentId,
-    reportResult,
-    reportChartType,
-    reportName
-  )
-  return true
-}
-
-function renderReportFallbackChartCard(
-  chartsGrid: HTMLElement,
-  contentId: string,
-  reportResult: ReportResult,
-  reportName: string
-): boolean {
-  if (!hasGroupedReportData(reportResult)) {
-    return false
-  }
-
-  const chartContainer = appendReportCard(chartsGrid, reportName, {
-    cardClassName: 'report-chart-card',
-    containerClassName: 'report-chart-container',
-  })
-
-  renderChart(chartContainer, contentId, reportResult, 'Column', reportName)
+  renderChart(chartContainer, contentId, reportResult, chartType, reportName)
   return true
 }
 
@@ -309,20 +284,13 @@ export function renderReport(
 
   setupReportGrid(chartsGrid, dashboardTitle, reportName)
 
-  const renderedChart = reportChartType
-    ? renderReportChartCard(
-        chartsGrid,
-        contentId,
-        reportResult,
-        reportName,
-        reportChartType
-      )
-    : renderReportFallbackChartCard(
-        chartsGrid,
-        contentId,
-        reportResult,
-        reportName
-      )
+  const renderedChart = renderReportChartCard(
+    chartsGrid,
+    contentId,
+    reportResult,
+    reportName,
+    reportChartType ?? 'Column'
+  )
   const renderedTable = renderReportTableCard(
     chartsGrid,
     contentId,
