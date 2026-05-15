@@ -131,6 +131,116 @@ function getReportChartType(reportResult: ReportResult): string | null {
   return chartType ? chartType : null
 }
 
+function setupReportGrid(
+  chartsGrid: HTMLElement,
+  dashboardTitle: HTMLElement | null,
+  reportName: string
+): void {
+  if (dashboardTitle) {
+    dashboardTitle.textContent = reportName
+  }
+
+  chartsGrid.innerHTML = ''
+  chartsGrid.style.gridTemplateColumns = 'repeat(12, 1fr)'
+  chartsGrid.style.gridAutoRows = 'minmax(6rem, auto)'
+}
+
+function renderReportChartCard(
+  chartsGrid: HTMLElement,
+  contentId: string,
+  reportResult: ReportResult,
+  reportName: string,
+  reportChartType: string
+): boolean {
+  if (!hasGroupedReportData(reportResult)) {
+    return false
+  }
+
+  const chartContainer = appendReportCard(chartsGrid, reportName, {
+    cardClassName: 'report-chart-card',
+    containerClassName: 'report-chart-container',
+  })
+
+  renderChart(
+    chartContainer,
+    contentId,
+    reportResult,
+    reportChartType,
+    reportName
+  )
+  return true
+}
+
+function renderReportFallbackChartCard(
+  chartsGrid: HTMLElement,
+  contentId: string,
+  reportResult: ReportResult,
+  reportName: string
+): boolean {
+  if (!hasGroupedReportData(reportResult)) {
+    return false
+  }
+
+  const chartContainer = appendReportCard(chartsGrid, reportName, {
+    cardClassName: 'report-chart-card',
+    containerClassName: 'report-chart-container',
+  })
+
+  renderChart(chartContainer, contentId, reportResult, 'Column', reportName)
+  return true
+}
+
+function renderReportTableCard(
+  chartsGrid: HTMLElement,
+  contentId: string,
+  reportResult: ReportResult,
+  reportName: string
+): boolean {
+  if (!hasReportDetailRows(reportResult)) {
+    return false
+  }
+
+  const meta = {
+    id: contentId,
+    header: reportName,
+    title: reportName,
+    reportId: contentId,
+    type: 'Report',
+    properties: {
+      visualizationType: 'FlexTable',
+      visualizationProperties: {},
+      aggregates: [],
+      groupings: null,
+    },
+  }
+
+  const tableContainer = appendReportCard(chartsGrid, `${reportName} Details`, {
+    cardClassName: 'report-table-card',
+  })
+
+  renderTable(tableContainer, meta, reportResult)
+  return true
+}
+
+function renderReportFallbackCard(
+  chartsGrid: HTMLElement,
+  reportName: string,
+  aggregateLabel: string,
+  aggregateValue: number | null
+): void {
+  if (aggregateValue !== null) {
+    const statContainer = appendReportCard(chartsGrid, reportName, {
+      cardClassName: 'report-stat-card',
+    })
+
+    renderStat(statContainer, aggregateLabel, String(aggregateValue))
+    return
+  }
+
+  const emptyContainer = appendReportCard(chartsGrid, reportName)
+  renderEmpty(emptyContainer)
+}
+
 export function renderDashboard(results: DashboardResults): void {
   const { dashboardTitle, chartsGrid } = getDashboardElements()
 
@@ -197,80 +307,39 @@ export function renderReport(
     reportResult.factMap?.['T!T']?.aggregates?.[0]?.value ?? null
   const reportChartType = getReportChartType(reportResult)
 
-  if (dashboardTitle) {
-    dashboardTitle.textContent = reportName
-  }
+  setupReportGrid(chartsGrid, dashboardTitle, reportName)
 
-  chartsGrid.innerHTML = ''
-  chartsGrid.style.gridTemplateColumns = 'repeat(12, 1fr)'
-  chartsGrid.style.gridAutoRows = 'minmax(6rem, auto)'
+  const renderedChart = reportChartType
+    ? renderReportChartCard(
+        chartsGrid,
+        contentId,
+        reportResult,
+        reportName,
+        reportChartType
+      )
+    : renderReportFallbackChartCard(
+        chartsGrid,
+        contentId,
+        reportResult,
+        reportName
+      )
+  const renderedTable = renderReportTableCard(
+    chartsGrid,
+    contentId,
+    reportResult,
+    reportName
+  )
 
-  let renderedContent = false
-
-  if (reportChartType && hasGroupedReportData(reportResult)) {
-    const chartContainer = appendReportCard(chartsGrid, reportName, {
-      cardClassName: 'report-chart-card',
-      containerClassName: 'report-chart-container',
-    })
-
-    renderChart(
-      chartContainer,
-      contentId,
-      reportResult,
-      reportChartType,
-      reportName
-    )
-    renderedContent = true
-  } else if (hasGroupedReportData(reportResult)) {
-    const chartContainer = appendReportCard(chartsGrid, reportName, {
-      cardClassName: 'report-chart-card',
-      containerClassName: 'report-chart-container',
-    })
-
-    renderChart(chartContainer, contentId, reportResult, 'Column', reportName)
-    renderedContent = true
-  }
-
-  if (hasReportDetailRows(reportResult)) {
-    const meta = {
-      id: contentId,
-      header: reportName,
-      title: reportName,
-      reportId: contentId,
-      type: 'Report',
-      properties: {
-        visualizationType: 'FlexTable',
-        visualizationProperties: {},
-        aggregates: [],
-        groupings: null,
-      },
-    }
-
-    const tableContainer = appendReportCard(
-      chartsGrid,
-      `${reportName} Details`,
-      {
-        cardClassName: 'report-table-card',
-      }
-    )
-
-    renderTable(tableContainer, meta, reportResult)
-    renderedContent = true
-  }
-
-  if (!renderedContent && aggregateValue !== null) {
-    const statContainer = appendReportCard(chartsGrid, reportName, {
-      cardClassName: 'report-stat-card',
-    })
-
-    renderStat(statContainer, aggregateLabel, String(aggregateValue))
+  if (renderedChart || renderedTable) {
     return
   }
 
-  if (!renderedContent) {
-    const emptyContainer = appendReportCard(chartsGrid, reportName)
-    renderEmpty(emptyContainer)
-  }
+  renderReportFallbackCard(
+    chartsGrid,
+    reportName,
+    aggregateLabel,
+    aggregateValue
+  )
 }
 
 export function showScreen(screenId: string): void {

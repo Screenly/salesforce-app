@@ -18,13 +18,34 @@ type RuntimeState = {
   credentialError: Error | null
 }
 
+async function loadAndRenderContent(
+  contentType: ReturnType<typeof inferSalesforceContentType>,
+  instanceUrl: string,
+  accessToken: string,
+  contentId: string
+): Promise<void> {
+  if (contentType === 'dashboard') {
+    const results = await getDashboardResults(
+      instanceUrl,
+      accessToken,
+      contentId
+    )
+    renderDashboard(results)
+    return
+  }
+
+  const results = await getReportResults(instanceUrl, accessToken, contentId)
+  renderReport(contentId, results)
+}
+
 async function fetchAndRender(
   contentId: string,
   getRuntimeState: () => RuntimeState,
   refreshToken: RefreshToken
 ): Promise<void> {
   const contentType = inferSalesforceContentType(contentId)
-  let { accessToken, instanceUrl, credentialError } = getRuntimeState()
+  let { accessToken, instanceUrl } = getRuntimeState()
+  const { credentialError } = getRuntimeState()
 
   if (!accessToken || !instanceUrl) {
     showError(
@@ -35,21 +56,7 @@ async function fetchAndRender(
   }
 
   try {
-    if (contentType === 'dashboard') {
-      const results = await getDashboardResults(
-        instanceUrl,
-        accessToken,
-        contentId
-      )
-      renderDashboard(results)
-    } else {
-      const results = await getReportResults(
-        instanceUrl,
-        accessToken,
-        contentId
-      )
-      renderReport(contentId, results)
-    }
+    await loadAndRenderContent(contentType, instanceUrl, accessToken, contentId)
     showScreen('dashboard-screen')
     signalReady()
   } catch (err) {
@@ -60,24 +67,17 @@ async function fetchAndRender(
       ;({ accessToken, instanceUrl } = getRuntimeState())
 
       if (!accessToken || !instanceUrl) {
-        throw new Error('No access token or instance URL available.')
+        throw new Error('No access token or instance URL available.', {
+          cause: err,
+        })
       }
 
-      if (contentType === 'dashboard') {
-        const results = await getDashboardResults(
-          instanceUrl,
-          accessToken,
-          contentId
-        )
-        renderDashboard(results)
-      } else {
-        const results = await getReportResults(
-          instanceUrl,
-          accessToken,
-          contentId
-        )
-        renderReport(contentId, results)
-      }
+      await loadAndRenderContent(
+        contentType,
+        instanceUrl,
+        accessToken,
+        contentId
+      )
       showScreen('dashboard-screen')
       signalReady()
     } catch (retryErr) {
