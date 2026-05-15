@@ -8,8 +8,8 @@ import {
   signalReady,
 } from '@screenly/edge-apps'
 import { getDashboardResults, getReportResults, AuthError } from './api'
-import { inferSalesforceContentType } from './content'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
+import type { SalesforceContentType } from './types'
 
 type RefreshToken = () => Promise<void>
 type RuntimeState = {
@@ -19,7 +19,7 @@ type RuntimeState = {
 }
 
 async function loadAndRenderContent(
-  contentType: ReturnType<typeof inferSalesforceContentType>,
+  contentType: SalesforceContentType,
   instanceUrl: string,
   accessToken: string,
   contentId: string
@@ -40,18 +40,10 @@ async function loadAndRenderContent(
 
 async function fetchAndRender(
   contentId: string,
+  contentType: SalesforceContentType,
   getRuntimeState: () => RuntimeState,
   refreshToken: RefreshToken
 ): Promise<void> {
-  let contentType: ReturnType<typeof inferSalesforceContentType>
-  try {
-    contentType = inferSalesforceContentType(contentId)
-  } catch (err) {
-    showError(err instanceof Error ? err.message : 'Unsupported content ID.')
-    signalReady()
-    return
-  }
-
   let { accessToken, instanceUrl } = getRuntimeState()
   const { credentialError } = getRuntimeState()
 
@@ -59,47 +51,37 @@ async function fetchAndRender(
     showError(
       credentialError?.message ?? 'No access token or instance URL available.'
     )
-    signalReady()
     return
   }
 
   try {
     await loadAndRenderContent(contentType, instanceUrl, accessToken, contentId)
     showScreen('dashboard-screen')
-    signalReady()
+    return
   } catch (err) {
     if (!(err instanceof AuthError)) {
       showError(err instanceof Error ? err.message : 'Failed to load content.')
-      signalReady()
+      return
+    }
+  }
+
+  try {
+    await refreshToken()
+    ;({ accessToken, instanceUrl } = getRuntimeState())
+
+    if (!accessToken || !instanceUrl) {
+      showError('No access token or instance URL available.')
       return
     }
 
-    try {
-      await refreshToken()
-      ;({ accessToken, instanceUrl } = getRuntimeState())
-
-      if (!accessToken || !instanceUrl) {
-        showError('No access token or instance URL available.')
-        signalReady()
-        return
-      }
-
-      await loadAndRenderContent(
-        contentType,
-        instanceUrl,
-        accessToken,
-        contentId
-      )
-      showScreen('dashboard-screen')
-      signalReady()
-    } catch (retryErr) {
-      showError(
-        retryErr instanceof Error
-          ? retryErr.message
-          : 'Session expired. Please re-authenticate.'
-      )
-      signalReady()
-    }
+    await loadAndRenderContent(contentType, instanceUrl, accessToken, contentId)
+    showScreen('dashboard-screen')
+  } catch (retryErr) {
+    showError(
+      retryErr instanceof Error
+        ? retryErr.message
+        : 'Session expired. Please re-authenticate.'
+    )
   }
 }
 
@@ -109,6 +91,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const contentId =
     getSettingWithDefault<string>('content_id', '') ||
     getSettingWithDefault<string>('dashboard_id', '')
+  const contentTypeRaw = getSettingWithDefault<string>(
+    'content_type',
+    'dashboard'
+  )
   const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
 
   if (!contentId) {
@@ -116,6 +102,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     signalReady()
     return
   }
+
+  if (contentTypeRaw !== 'dashboard' && contentTypeRaw !== 'report') {
+    showError(
+      `Invalid content type: "${contentTypeRaw}". Expected "dashboard" or "report".`
+    )
+    signalReady()
+    return
+  }
+
+  const contentType = contentTypeRaw as SalesforceContentType
 
   let accessToken: string | null =
     getSettingWithDefault('access_token', '') || null
@@ -144,9 +140,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     credentialError,
   })
 
-  const run = () => fetchAndRender(contentId, getRuntimeState, refreshToken)
+  const run = () =>
+    fetchAndRender(contentId, contentType, getRuntimeState, refreshToken)
 
   await run()
+  signalReady()
 
   setInterval(async () => {
     try {

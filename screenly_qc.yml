@@ -4,9 +4,9 @@ description: Display Salesforce dashboards and reports on your Screenly screens
 icon: https://playground.srly.io/edge-apps/salesforce-app/static/images/icon.svg
 author: Screenly, Inc.
 categories:
-  - CRM
-  - Dashboard
-  - Report
+- CRM
+- Dashboard
+- Report
 ready_signal: true
 settings:
   access_token:
@@ -22,7 +22,26 @@ settings:
     type: string
     title: Content ID
     optional: false
-    help_text: Enter a Salesforce dashboard ID or report ID. The app infers the content type from the ID prefix.
+    help_text:
+      properties:
+        help_text: Select the Salesforce dashboard or report to display.
+        type: oauth:salesforce:resource_id
+      schema_version: 1
+  content_type:
+    type: string
+    default_value: dashboard
+    title: Content Type
+    optional: false
+    help_text:
+      properties:
+        help_text: Select whether to display a dashboard or a report.
+        options:
+        - label: Dashboard
+          value: dashboard
+        - label: Report
+          value: report
+        type: select
+      schema_version: 1
   display_errors:
     type: string
     default_value: 'false'
