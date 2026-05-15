@@ -121,8 +121,7 @@ The app infers the content type from the first 3 characters of the ID:
 
 This behavior follows Salesforce's official key-prefix documentation:
 
-- [Salesforce Entity Key Prefix Decoder](https://help.salesforce.com/s/articleView?id=000385203&language=en_US&type=1)
-- [Find Object type from Record ID prefix](https://help.salesforce.com/s/articleView?id=How-to-find-Object-Type-from-Record-ID-Prefix&language=en_US&type=1)
+- [Salesforce Entity Key Prefix List](https://help.salesforce.com/s/articleView?id=000386286&type=1)
 
 ## Supported Visualizations
 

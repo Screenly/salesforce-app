@@ -27,21 +27,6 @@ settings:
         help_text: Select the Salesforce dashboard or report to display.
         type: oauth:salesforce:resource_id
       schema_version: 1
-  content_type:
-    type: string
-    default_value: dashboard
-    title: Content Type
-    optional: false
-    help_text:
-      properties:
-        help_text: Select whether to display a dashboard or a report.
-        options:
-        - label: Dashboard
-          value: dashboard
-        - label: Report
-          value: report
-        type: select
-      schema_version: 1
   display_errors:
     type: string
     default_value: 'false'
@@ -58,4 +43,9 @@ settings:
     default_value: '300'
     title: Refresh Interval (seconds)
     optional: true
-    help_text: How often to refresh Salesforce data. Defaults to 300 seconds (5 minutes).
+    help_text:
+      properties:
+        advanced: true
+        help_text: How often to refresh Salesforce data. Defaults to 300 seconds (5 minutes).
+        type: number
+      schema_version: 1

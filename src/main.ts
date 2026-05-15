@@ -8,6 +8,7 @@ import {
   signalReady,
 } from '@screenly/edge-apps'
 import { getDashboardResults, getReportResults, AuthError } from './api'
+import { inferSalesforceContentType } from './content'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
 import type { SalesforceContentType } from './types'
 
@@ -91,10 +92,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const contentId =
     getSettingWithDefault<string>('content_id', '') ||
     getSettingWithDefault<string>('dashboard_id', '')
-  const contentTypeRaw = getSettingWithDefault<string>(
-    'content_type',
-    'dashboard'
-  )
   const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
 
   if (!contentId) {
@@ -103,15 +100,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     return
   }
 
-  if (contentTypeRaw !== 'dashboard' && contentTypeRaw !== 'report') {
-    showError(
-      `Invalid content type: "${contentTypeRaw}". Expected "dashboard" or "report".`
-    )
+  let contentType: SalesforceContentType
+  try {
+    contentType = inferSalesforceContentType(contentId)
+  } catch (err) {
+    showError(err instanceof Error ? err.message : 'Unsupported content ID.')
     signalReady()
     return
   }
-
-  const contentType = contentTypeRaw as SalesforceContentType
 
   let accessToken: string | null =
     getSettingWithDefault('access_token', '') || null
