@@ -39,18 +39,25 @@ async function loadAndRenderContent(
   renderReport(contentId, results)
 }
 
+function handleError(message: string, displayErrors: boolean): void {
+  if (displayErrors) throw new Error(message)
+  showError(message)
+}
+
 async function fetchAndRender(
   contentId: string,
   contentType: SalesforceContentType,
   getRuntimeState: () => RuntimeState,
-  refreshToken: RefreshToken
+  refreshToken: RefreshToken,
+  displayErrors: boolean
 ): Promise<void> {
   let { accessToken, instanceUrl } = getRuntimeState()
   const { credentialError } = getRuntimeState()
 
   if (!accessToken || !instanceUrl) {
-    showError(
-      credentialError?.message ?? 'No access token or instance URL available.'
+    handleError(
+      credentialError?.message ?? 'No access token or instance URL available.',
+      displayErrors
     )
     return
   }
@@ -61,7 +68,10 @@ async function fetchAndRender(
     return
   } catch (err) {
     if (!(err instanceof AuthError)) {
-      showError(err instanceof Error ? err.message : 'Failed to load content.')
+      handleError(
+        err instanceof Error ? err.message : 'Failed to load content.',
+        displayErrors
+      )
       return
     }
   }
@@ -71,17 +81,18 @@ async function fetchAndRender(
     ;({ accessToken, instanceUrl } = getRuntimeState())
 
     if (!accessToken || !instanceUrl) {
-      showError('No access token or instance URL available.')
+      handleError('No access token or instance URL available.', displayErrors)
       return
     }
 
     await loadAndRenderContent(contentType, instanceUrl, accessToken, contentId)
     showScreen('dashboard-screen')
   } catch (retryErr) {
-    showError(
+    handleError(
       retryErr instanceof Error
         ? retryErr.message
-        : 'Session expired. Please re-authenticate.'
+        : 'Session expired. Please re-authenticate.',
+      displayErrors
     )
   }
 }
@@ -93,6 +104,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     getSettingWithDefault<string>('content_id', '') ||
     getSettingWithDefault<string>('dashboard_id', '')
   const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
+  const displayErrors =
+    getSettingWithDefault<string>('display_errors', 'false') === 'true'
 
   if (!contentId) {
     showError('Please configure the Salesforce Content ID in settings.')
@@ -137,7 +150,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   })
 
   const run = () =>
-    fetchAndRender(contentId, contentType, getRuntimeState, refreshToken)
+    fetchAndRender(
+      contentId,
+      contentType,
+      getRuntimeState,
+      refreshToken,
+      displayErrors
+    )
 
   await run()
   signalReady()
