@@ -24,6 +24,9 @@ export function renderTable(
     return
   }
 
+  const wrapper = document.createElement('div')
+  wrapper.className = 'table-scroll'
+
   const table = document.createElement('table')
   table.className = 'data-table'
 
@@ -49,5 +52,6 @@ export function renderTable(
     tbody.appendChild(tr)
   }
   table.appendChild(tbody)
-  container.appendChild(table)
+  wrapper.appendChild(table)
+  container.appendChild(wrapper)
 }

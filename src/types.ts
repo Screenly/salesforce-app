@@ -1,3 +1,5 @@
+export type SalesforceContentType = 'dashboard' | 'report'
+
 export interface FactMapEntry {
   aggregates: { label: string; value: number }[]
   rows?: { dataCells: { label: string; value: unknown }[] }[]
@@ -7,6 +9,7 @@ export interface ReportResult {
   factMap: Record<string, FactMapEntry>
   groupingsDown?: { groupings: { label: string; key: string }[] }
   groupingsAcross?: { groupings: { label: string; key: string }[] }
+  hasDetailRows?: boolean
   reportExtendedMetadata?: {
     detailColumnInfo?: Record<string, { label: string; dataType: string }>
     aggregateColumnInfo?: Record<string, { label: string; dataType: string }>
@@ -14,6 +17,11 @@ export interface ReportResult {
   reportMetadata?: {
     detailColumns?: string[]
     aggregates?: string[]
+    chart?: {
+      chartType?: string
+    }
+    name?: string
+    reportFormat?: string
   }
 }
 

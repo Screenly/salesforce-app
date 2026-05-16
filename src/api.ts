@@ -1,5 +1,5 @@
 import { getCorsProxyUrl } from '@screenly/edge-apps'
-import type { DashboardResults } from './types'
+import type { DashboardResults, ReportResult } from './types'
 
 const API_VERSION = 'v62.0'
 
@@ -23,6 +23,10 @@ async function apiFetch<T>(
   })
 
   if (res.status === 401) throw new AuthError(`Unauthorized: ${path}`)
+  if (res.status === 404)
+    throw new Error(
+      'The selected content could not be found. Please verify that it still exists in Salesforce.'
+    )
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
   return res.json() as Promise<T>
 }
@@ -30,9 +34,9 @@ async function apiFetch<T>(
 export async function getDashboardResults(
   instanceUrl: string,
   accessToken: string,
-  dashboardId: string
+  contentId: string
 ): Promise<DashboardResults> {
-  const path = `/analytics/dashboards/${dashboardId}`
+  const path = `/analytics/dashboards/${contentId}`
 
   await fetch(apiUrl(instanceUrl, path), {
     method: 'PUT',
@@ -43,4 +47,13 @@ export async function getDashboardResults(
   }).catch(() => {})
 
   return apiFetch<DashboardResults>(instanceUrl, accessToken, path)
+}
+
+export async function getReportResults(
+  instanceUrl: string,
+  accessToken: string,
+  contentId: string
+): Promise<ReportResult> {
+  const path = `/analytics/reports/${contentId}`
+  return apiFetch<ReportResult>(instanceUrl, accessToken, path)
 }

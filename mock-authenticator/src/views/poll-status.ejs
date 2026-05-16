@@ -1,11 +1,11 @@
 <% if (status === 'authorized') { %>
   <div id="poll-status" data-authorized="true"></div>
 <% } else if (status === 'error') { %>
-  <div id="poll-status" class="status-pending" style="color:#ff6b6b">Error: <%= error %></div>
+  <div id="poll-status" class="text-sm text-[#ff6b6b] mt-2">Error: <%= error %></div>
 <% } else { %>
   <div
     id="poll-status"
-    class="status-pending"
+    class="text-sm text-white/50 mt-2"
     hx-post="/poll"
     hx-trigger="load delay:<%= interval %>s"
     hx-vals='{"device_code": "<%= device_code %>", "interval": "<%= interval %>"}'

@@ -22,16 +22,21 @@ const CHART_COLORS = [
 export const CHART_TYPES = new Set([
   'bar',
   'column',
+  'horizontal bar',
   'line',
   'pie',
   'donut',
   'doughnut',
 ])
 
+function normalizeChartType(sfType: string): string {
+  return sfType.trim().toLowerCase()
+}
+
 function mapChartType(sfType: string): 'bar' | 'line' | 'pie' | 'doughnut' {
-  const t = sfType.toLowerCase()
+  const t = normalizeChartType(sfType)
   if (t === 'donut') return 'doughnut'
-  if (t === 'bar' || t === 'column') return 'bar'
+  if (t === 'bar' || t === 'column' || t === 'horizontal bar') return 'bar'
   if (t === 'line') return 'line'
   if (t === 'pie') return 'pie'
   return 'bar'
@@ -74,7 +79,9 @@ export function renderChart(
   }
 
   const chartType = mapChartType(sfType)
-  const isHorizontalBar = sfType.toLowerCase() === 'bar'
+  const normalizedType = normalizeChartType(sfType)
+  const isHorizontalBar =
+    normalizedType === 'bar' || normalizedType === 'horizontal bar'
   const canvas = document.createElement('canvas')
   canvas.id = `chart-${componentId}`
   container.appendChild(canvas)
