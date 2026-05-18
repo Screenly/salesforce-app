@@ -4,7 +4,7 @@ name: Update Edge App
 on:
   push:
     branches:
-      - main
+      - development
     tags:
       - 'v*'
 
@@ -14,7 +14,7 @@ jobs:
   deploy-stage:
     name: Updating Salesforce App in stage
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/development'
     environment: stage
     steps:
       - uses: actions/checkout@v6

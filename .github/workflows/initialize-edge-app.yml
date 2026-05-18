@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: main
+          ref: development
       - uses: Screenly/edge-apps-actions/initialize@v1
         with:
           screenly_api_token: ${{ secrets.SCREENLY_API_TOKEN }}
