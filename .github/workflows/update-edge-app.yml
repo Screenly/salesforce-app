@@ -1,0 +1,37 @@
+---
+name: Update Edge App
+
+on:
+  push:
+    branches:
+      - development
+      - main
+
+run-name: Updating Salesforce App in ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
+
+jobs:
+  deploy-stage:
+    name: Updating Salesforce App in stage
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/development'
+    environment: stage
+    steps:
+      - uses: actions/checkout@v6
+      - uses: Screenly/edge-apps-actions/update@v1
+        with:
+          screenly_api_token: ${{ secrets.SCREENLY_API_TOKEN }}
+          environment: stage
+          delete_missing_settings: 'true'
+
+  deploy-production:
+    name: Updating Salesforce App in production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+      - uses: Screenly/edge-apps-actions/update@v1
+        with:
+          screenly_api_token: ${{ secrets.SCREENLY_API_TOKEN }}
+          environment: production
+          delete_missing_settings: 'true'

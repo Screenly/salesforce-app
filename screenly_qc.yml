@@ -1,0 +1,51 @@
+---
+syntax: manifest_v1
+description: Display Salesforce dashboards and reports on your Screenly screens
+icon: https://playground.srly.io/edge-apps/salesforce-app/static/images/icon.svg
+author: Screenly, Inc.
+categories:
+- CRM
+- Dashboard
+- Report
+ready_signal: true
+settings:
+  access_token:
+    type: secret
+    title: Access Token
+    optional: true
+    help_text:
+      properties:
+        help_text: For testing only. In production, the access token should be fetched dynamically via the API.
+        type: oauth:salesforce:access_token
+      schema_version: 1
+  content_id:
+    type: string
+    title: Content ID
+    optional: false
+    help_text:
+      properties:
+        help_text: Select the Salesforce dashboard or report to display.
+        type: oauth:salesforce:resource_id
+      schema_version: 1
+  display_errors:
+    type: string
+    default_value: 'false'
+    title: Display Errors
+    optional: true
+    help_text:
+      properties:
+        advanced: true
+        help_text: For debugging purposes to display errors on the screen.
+        type: boolean
+      schema_version: 1
+  refresh_interval:
+    type: string
+    default_value: '300'
+    title: Refresh Interval (seconds)
+    optional: true
+    help_text:
+      properties:
+        advanced: true
+        help_text: How often to refresh Salesforce data. Defaults to 300 seconds (5 minutes).
+        type: number
+      schema_version: 1

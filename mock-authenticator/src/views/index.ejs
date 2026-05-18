@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salesforce Mock Authenticator</title>
+    <link rel="stylesheet" href="/css/main.css" />
+    <script src="/vendor/htmx/htmx.min.js"></script>
+    <script src="/vendor/alpine/cdn.min.js" defer></script>
+  </head>
+  <body class="min-h-screen bg-[#0a0a1a] text-[#e0e0e0] flex items-center justify-center p-8 font-sans">
+
+    <% if (tokens) { %>
+      <div class="flex flex-row w-full max-w-4xl rounded-3xl overflow-hidden border border-white/20 text-white"
+        x-data="{
+          copied: null,
+          tokens: {
+            access_token: document.getElementById('data-access-token').textContent,
+            refresh_token: document.getElementById('data-refresh-token').textContent
+          }
+        }">
+        <template id="data-access-token" style="display:none"><%= tokens.access_token %></template>
+        <template id="data-refresh-token" style="display:none"><%= tokens.refresh_token %></template>
+
+        <div class="flex-none w-80 bg-[#00a1e0]/10 border-r border-white/20 px-10 py-12 flex flex-col justify-center gap-4">
+          <h1 class="text-4xl font-bold leading-tight text-white m-0">Connected to<br />Salesforce</h1>
+          <p class="text-base text-white/85 m-0 leading-relaxed">Tokens are ready for the Edge App.</p>
+          <p class="text-sm text-[#00c9a7] mt-2 m-0">&#10003; Authenticated</p>
+        </div>
+
+        <div class="flex-1 px-10 py-12 flex flex-col justify-center gap-5">
+          <div class="relative mb-5">
+            <div class="text-xs text-white/45 uppercase tracking-widest mb-1.5">Access Token</div>
+            <div class="bg-white/5 border border-white/10 rounded-lg py-2.5 pr-10 pl-3 font-mono text-xs text-[#a0cfff] break-all leading-relaxed"><%= tokens.access_token %></div>
+            <button class="absolute top-7 right-2 bg-transparent border-0 cursor-pointer text-white/40 text-base p-0.5 leading-none hover:text-white" title="Copy"
+              @click="navigator.clipboard.writeText(tokens.access_token); copied = 'access'">&#128203;</button>
+            <span x-show="copied === 'access'" x-transition class="text-xs text-[#00c9a7] ml-2">Copied!</span>
+          </div>
+
+          <div class="relative mb-5">
+            <div class="text-xs text-white/45 uppercase tracking-widest mb-1.5">Refresh Token</div>
+            <div class="bg-white/5 border border-white/10 rounded-lg py-2.5 pr-10 pl-3 font-mono text-xs text-[#a0cfff] break-all leading-relaxed"><%= tokens.refresh_token %></div>
+            <button class="absolute top-7 right-2 bg-transparent border-0 cursor-pointer text-white/40 text-base p-0.5 leading-none hover:text-white" title="Copy"
+              @click="navigator.clipboard.writeText(tokens.refresh_token); copied = 'refresh'">&#128203;</button>
+            <span x-show="copied === 'refresh'" x-transition class="text-xs text-[#00c9a7] ml-2">Copied!</span>
+          </div>
+
+          <div class="relative mb-5">
+            <div class="text-xs text-white/45 uppercase tracking-widest mb-1.5">Instance URL</div>
+            <div class="bg-white/5 border border-white/10 rounded-lg py-2.5 pr-10 pl-3 font-mono text-xs text-[#a0cfff] break-all leading-relaxed"><%= tokens.instance_url %></div>
+          </div>
+
+          <hr class="border-0 border-t border-white/10 my-2" />
+
+          <div class="flex gap-3 items-center flex-wrap">
+            <form method="POST" action="/start" class="m-0">
+              <button type="submit" class="inline-block px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer border-0 no-underline bg-[#00a1e0] text-white hover:bg-[#0090c8]">Re-authenticate</button>
+            </form>
+            <form method="POST" action="/clear" class="m-0">
+              <button type="submit" class="inline-block px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer border border-[#ff5050]/30 no-underline bg-[#ff5050]/15 text-[#ff6b6b] hover:bg-[#ff5050]/25">Clear Tokens</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+    <% } else if (deviceFlow) { %>
+      <div class="flex flex-row w-full max-w-4xl rounded-3xl overflow-hidden border border-white/20 text-white">
+        <div class="flex-none w-80 bg-[#00a1e0]/10 border-r border-white/20 px-10 py-12 flex flex-col justify-center gap-4">
+          <h1 class="text-4xl font-bold leading-tight text-white m-0">Connect to<br />Salesforce</h1>
+          <p class="text-base text-white/85 m-0 leading-relaxed">Use any phone, tablet, or computer to authorize this screen in seconds.</p>
+          <div
+            id="poll-status"
+            class="text-sm text-white/50 mt-2"
+            hx-post="/poll"
+            hx-trigger="load delay:<%= deviceFlow.interval %>s"
+            hx-vals='{"device_code": "<%= deviceFlow.device_code %>", "interval": "<%= deviceFlow.interval %>"}'
+            hx-swap="outerHTML"
+          >Waiting for authorization...</div>
+        </div>
+
+        <div class="flex-1 px-10 py-12 flex flex-col justify-center gap-5">
+          <div class="flex items-start gap-5">
+            <span class="shrink-0 w-8 h-8 rounded-full bg-[#00a1e0] text-white text-base font-bold flex items-center justify-center mt-1">1</span>
+            <div class="flex flex-col gap-2">
+              <div class="text-xs text-white/50 uppercase tracking-widest">Open in a browser</div>
+              <div class="text-lg text-[#00a1e0] break-all font-medium"><%= deviceFlow.verification_uri %></div>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-5">
+            <span class="shrink-0 w-8 h-8 rounded-full bg-[#00a1e0] text-white text-base font-bold flex items-center justify-center mt-1">2</span>
+            <div class="flex flex-col gap-2">
+              <div class="text-xs text-white/50 uppercase tracking-widest">Enter the code</div>
+              <div class="text-5xl font-bold tracking-widest text-white"><%= deviceFlow.user_code %></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <% } else { %>
+      <div class="flex flex-row w-full max-w-4xl rounded-3xl overflow-hidden border border-white/20 text-white">
+        <div class="flex-none w-80 bg-[#00a1e0]/10 border-r border-white/20 px-10 py-12 flex flex-col justify-center gap-4">
+          <h1 class="text-4xl font-bold leading-tight text-white m-0">Connect to<br />Salesforce</h1>
+          <p class="text-base text-white/85 m-0 leading-relaxed">Authorize this screen to display your Salesforce dashboards or reports.</p>
+        </div>
+
+        <div class="flex-1 px-10 py-12 flex flex-col justify-center gap-5">
+          <p class="text-white/50 m-0 mb-6">No tokens stored yet.</p>
+          <form method="POST" action="/start" class="m-0">
+            <button type="submit" class="inline-block px-5 py-2.5 rounded-lg text-sm font-semibold cursor-pointer border-0 no-underline bg-[#00a1e0] text-white hover:bg-[#0090c8]">Authenticate with Salesforce</button>
+          </form>
+        </div>
+      </div>
+    <% } %>
+
+    <script>
+      document.body.addEventListener('htmx:afterSettle', function () {
+        const el = document.getElementById('poll-status')
+        if (el && el.dataset.authorized === 'true') {
+          window.location.reload()
+        }
+      })
+    </script>
+  </body>
+</html>
