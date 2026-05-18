@@ -32,6 +32,25 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.environment == 'production' && 'main' || 'development' }}
+      - name: Screenly API whoami
+        env:
+          SCREENLY_API_TOKEN: ${{ secrets.SCREENLY_API_TOKEN }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          current_user=$(
+            curl -fsSL -H "Authorization: Token ${SCREENLY_API_TOKEN}" \
+              "${API_BASE_URL}/api/v4.1/users" \
+              | jq -r '.[0] | "\(.first_name) \(.last_name) <\(.email)>"'
+          )
+          echo "Current user: ${current_user}"
+          current_team=$(
+            curl -fsSL -H "Authorization: Token ${SCREENLY_API_TOKEN}" \
+              "${API_BASE_URL}/api/v4.1/teams" \
+              | jq -r '.[] | select(.is_current == true)
+                      | "\(.name) (\(.domain))"'
+          )
+          echo "Current team: ${current_team}"
       - uses: Screenly/edge-apps-actions/initialize@v1
         with:
           screenly_api_token: ${{ secrets.SCREENLY_API_TOKEN }}
