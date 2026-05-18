@@ -5,10 +5,9 @@ on:
   push:
     branches:
       - development
-    tags:
-      - 'v*'
+      - main
 
-run-name: Updating Salesforce App in ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'stage' }}
+run-name: Updating Salesforce App in ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
 
 jobs:
   deploy-stage:
@@ -27,7 +26,7 @@ jobs:
   deploy-production:
     name: Updating Salesforce App in production
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main'
     environment: production
     steps:
       - uses: actions/checkout@v6
