@@ -33,7 +33,7 @@ After `mock-data.yml` is generated, fill in your values under `settings`:
 
 ```yaml
 settings:
-  content_id: '<your Salesforce dashboard or report ID>'
+  dashboard_id: '<your Salesforce dashboard or report ID>'
   display_errors: 'false'
   refresh_interval: '300'
   screenly_app_auth_token: mock-token
@@ -86,7 +86,7 @@ screenly edge-app instance create
 | Setting            | Type   | Required | Description                                                                    |
 | ------------------ | ------ | -------- | ------------------------------------------------------------------------------ |
 | `access_token`     | secret | No       | For testing only. In production, the token is fetched dynamically via the API. |
-| `content_id`       | string | Yes      | Salesforce dashboard ID or report ID to display                                |
+| `dashboard_id`     | string | Yes      | Salesforce dashboard ID or report ID to display                                |
 | `refresh_interval` | string | No       | How often (in seconds) to refresh Salesforce data. Default: `300`              |
 | `display_errors`   | string | No       | Display errors on screen for debugging (`true`/`false`). Default: `false`      |
 

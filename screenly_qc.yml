@@ -19,7 +19,7 @@ settings:
         help_text: For testing only. In production, the access token should be fetched dynamically via the API.
         type: oauth:salesforce:access_token
       schema_version: 1
-  content_id:
+  dashboard_id:
     type: string
     title: Content ID
     optional: false

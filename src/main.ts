@@ -100,9 +100,11 @@ async function fetchAndRender(
 document.addEventListener('DOMContentLoaded', async () => {
   setupErrorHandling()
 
+  // dashboard_id is the canonical setting; content_id is kept as a fallback for
+  // instances that were configured before the rename.
   const contentId =
-    getSettingWithDefault<string>('content_id', '') ||
-    getSettingWithDefault<string>('dashboard_id', '')
+    getSettingWithDefault<string>('dashboard_id', '') ||
+    getSettingWithDefault<string>('content_id', '')
   const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
   const displayErrors =
     getSettingWithDefault<string>('display_errors', 'false') === 'true'
