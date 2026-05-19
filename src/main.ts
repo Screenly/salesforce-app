@@ -22,7 +22,7 @@ async function loadAndRenderContent(
   contentType: SalesforceContentType,
   instanceUrl: string,
   accessToken: string,
-  contentId: string,
+  contentId: string
 ): Promise<void> {
   if (contentType === 'dashboard') {
     const results = await getDashboardResults(
@@ -76,10 +76,8 @@ async function fetchAndRender(
   }
 
   try {
-    await refreshToken() ;
-    ({ accessToken, instanceUrl } = getRuntimeState())
-
-
+    await refreshToken()
+    ;({ accessToken, instanceUrl } = getRuntimeState())
 
     if (!accessToken) {
       handleError('No access token.', displayErrors)
@@ -102,10 +100,8 @@ async function fetchAndRender(
   }
 }
 
-
-
 const getCredentials = async (
-  tokenType: string = 'access_token',
+  tokenType: string = 'access_token'
 ): Promise<{ token: string; instanceUrl: string }> => {
   const response = await fetch(
     screenly.settings.screenly_oauth_tokens_url + tokenType + '/',
@@ -115,7 +111,7 @@ const getCredentials = async (
         Accept: 'application/json',
         Authorization: `Bearer ${screenly.settings.screenly_app_auth_token}`,
       },
-    },
+    }
   )
 
   const { token, instance_url } = await response.json()
@@ -153,10 +149,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let credentialError: Error | null = null
 
   const refreshToken = async () => {
+    const credentials = await getCredentials()
 
-    const credentials = await getCredentials();
-
-    console.log("Renat!!!", credentials)
+    console.log('Renat!!!', credentials)
 
     accessToken = credentials.token
     instanceUrl = credentials.instanceUrl
