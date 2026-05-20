@@ -1,6 +1,7 @@
 import './css/style.css'
 import '@screenly/edge-apps/components'
 import {
+  getCredentials,
   getSettingWithDefault,
   initTokenRefreshLoop,
   setupErrorHandling,
@@ -100,30 +101,10 @@ async function fetchAndRender(
   }
 }
 
-const getCredentials = async (
-  tokenType: string = 'access_token'
-): Promise<{ token: string; instanceUrl: string }> => {
-  const response = await fetch(
-    screenly.settings.screenly_oauth_tokens_url + tokenType + '/',
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${screenly.settings.screenly_app_auth_token}`,
-      },
-    }
-  )
-
-  const { token, instance_url } = await response.json()
-  return { token, instanceUrl: instance_url }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
   setupErrorHandling()
 
-  const contentId =
-    getSettingWithDefault<string>('content_id', '') ||
-    getSettingWithDefault<string>('dashboard_id', '')
+  const contentId = getSettingWithDefault<string>('content_id', '')
   const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
   const displayErrors =
     getSettingWithDefault<string>('display_errors', 'false') === 'true'
@@ -149,13 +130,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let credentialError: Error | null = null
 
   const refreshToken = async () => {
-    const credentials = await getCredentials()
-
-    console.log('Renat!!!', credentials)
-
-    accessToken = credentials.token
-    instanceUrl = credentials.instanceUrl
-
+    const { token, metadata } = await getCredentials()
+    accessToken = token
+    instanceUrl = (metadata?.instance_url as string) ?? instanceUrl
     credentialError = null
   }
 
