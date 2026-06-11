@@ -5,8 +5,7 @@ description: Display Salesforce dashboards and reports on your Screenly screens
 icon: https://playground.srly.io/edge-apps/icons/salesforce.svg
 author: Screenly, Inc.
 categories:
-- CRM
-- Dashboard
+- Dashboards
 - Report
 ready_signal: true
 settings:
