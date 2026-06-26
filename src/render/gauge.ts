@@ -20,7 +20,8 @@ function drawGaugeNeedle(
   outerR: number,
   pct: number
 ): void {
-  const angle = Math.PI + pct * Math.PI
+  const safePct = Number.isFinite(pct) ? Math.max(0, Math.min(1, pct)) : 0
+  const angle = Math.PI + safePct * Math.PI
   ctx.save()
   ctx.beginPath()
   ctx.moveTo(cx, cy)
@@ -49,9 +50,11 @@ function drawGaugeBreakLabels(
   max: number,
   breaks: { lowerBound: number; upperBound: number }[]
 ): void {
+  const range = max - min
+  if (range <= 0) return
+
   const labelR = (outerR + innerR) / 2
   const fontSize = Math.max(13, Math.floor(outerR * 0.14))
-  const range = max - min
   ctx.save()
   ctx.font = `bold ${fontSize}px sans-serif`
   ctx.textAlign = 'center'

@@ -111,12 +111,9 @@ function renderStat(
 function renderMetric(
   container: HTMLElement,
   reportResult: ReportResult,
-  meta: DashboardMetadataComponent
+  _meta: DashboardMetadataComponent
 ): void {
-  const aggregate = meta.properties.aggregates?.[0]
-  const aggregateName = aggregate?.name ?? ''
-  const factKey = aggregateName ? `${aggregateName}!T` : 'T!T'
-  const entry = reportResult.factMap?.[factKey] ?? reportResult.factMap?.['T!T']
+  const entry = reportResult.factMap?.['T!T']
 
   if (!entry) {
     renderEmpty(container)

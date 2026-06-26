@@ -88,6 +88,24 @@ const MOCK_DASHBOARD_RESPONSE = {
       status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
     },
     {
+      componentId: 'comp-metric',
+      reportResult: {
+        factMap: {
+          'T!T': { aggregates: [{ label: '42', value: 42 }] },
+        },
+        groupingsDown: { groupings: [] },
+        groupingsAcross: { groupings: [] },
+        reportExtendedMetadata: {
+          aggregateColumnInfo: {
+            RowCount: { dataType: 'int', label: 'Record Count' },
+          },
+          detailColumnInfo: {},
+        },
+        reportMetadata: { aggregates: ['RowCount'], detailColumns: [] },
+      },
+      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+    },
+    {
       componentId: 'comp-gauge',
       reportResult: {
         factMap: {
@@ -194,8 +212,22 @@ const MOCK_DASHBOARD_RESPONSE = {
         },
       },
       {
-        id: 'comp-gauge',
+        id: 'comp-metric',
         componentData: 3,
+        header: 'Total Cases',
+        title: null,
+        reportId: '00O000000000005',
+        type: 'Report',
+        properties: {
+          visualizationType: 'Metric',
+          visualizationProperties: {},
+          aggregates: [{ name: 'RowCount' }],
+          groupings: null,
+        },
+      },
+      {
+        id: 'comp-gauge',
+        componentData: 4,
         header: 'Number of Cases',
         title: null,
         reportId: '00O000000000004',
@@ -223,7 +255,7 @@ const MOCK_DASHBOARD_RESPONSE = {
       },
       {
         id: 'comp-table',
-        componentData: 4,
+        componentData: 5,
         header: 'Account List',
         title: null,
         reportId: '00O000000000002',
@@ -248,8 +280,9 @@ const MOCK_DASHBOARD_RESPONSE = {
         { column: 0, row: 0, colspan: 4, rowspan: 8 },
         { column: 4, row: 0, colspan: 4, rowspan: 8 },
         { column: 8, row: 0, colspan: 4, rowspan: 8 },
-        { column: 0, row: 8, colspan: 6, rowspan: 8 },
-        { column: 6, row: 8, colspan: 6, rowspan: 8 },
+        { column: 0, row: 8, colspan: 3, rowspan: 8 },
+        { column: 3, row: 8, colspan: 5, rowspan: 8 },
+        { column: 8, row: 8, colspan: 4, rowspan: 8 },
       ],
       numColumns: 12,
       rowHeight: 36,
