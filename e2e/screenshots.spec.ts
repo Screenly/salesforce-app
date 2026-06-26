@@ -88,6 +88,42 @@ const MOCK_DASHBOARD_RESPONSE = {
       status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
     },
     {
+      componentId: 'comp-metric',
+      reportResult: {
+        factMap: {
+          'T!T': { aggregates: [{ label: '42', value: 42 }] },
+        },
+        groupingsDown: { groupings: [] },
+        groupingsAcross: { groupings: [] },
+        reportExtendedMetadata: {
+          aggregateColumnInfo: {
+            RowCount: { dataType: 'int', label: 'Record Count' },
+          },
+          detailColumnInfo: {},
+        },
+        reportMetadata: { aggregates: ['RowCount'], detailColumns: [] },
+      },
+      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+    },
+    {
+      componentId: 'comp-gauge',
+      reportResult: {
+        factMap: {
+          'T!T': { aggregates: [{ label: '135', value: 135 }] },
+        },
+        groupingsDown: { groupings: [] },
+        groupingsAcross: { groupings: [] },
+        reportExtendedMetadata: {
+          aggregateColumnInfo: {
+            RowCount: { dataType: 'int', label: 'Record Count' },
+          },
+          detailColumnInfo: {},
+        },
+        reportMetadata: { aggregates: ['RowCount'], detailColumns: [] },
+      },
+      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+    },
+    {
       componentId: 'comp-table',
       reportResult: {
         factMap: {
@@ -176,8 +212,50 @@ const MOCK_DASHBOARD_RESPONSE = {
         },
       },
       {
-        id: 'comp-table',
+        id: 'comp-metric',
         componentData: 3,
+        header: 'Total Cases',
+        title: null,
+        reportId: '00O000000000005',
+        type: 'Report',
+        properties: {
+          visualizationType: 'Metric',
+          visualizationProperties: {},
+          aggregates: [{ name: 'RowCount' }],
+          groupings: null,
+        },
+      },
+      {
+        id: 'comp-gauge',
+        componentData: 4,
+        header: 'Number of Cases',
+        title: null,
+        reportId: '00O000000000004',
+        type: 'Report',
+        properties: {
+          visualizationType: 'Gauge',
+          visualizationProperties: {
+            breakPoints: [
+              {
+                aggregateName: 'RowCount',
+                breaks: [
+                  { color: 'ae4034', lowerBound: 0, upperBound: 54 },
+                  { color: 'f2a91e', lowerBound: 54, upperBound: 108 },
+                  { color: '217c3e', lowerBound: 108, upperBound: 200 },
+                ],
+              },
+            ],
+            showPercentages: false,
+            showRange: true,
+            showTotal: false,
+          },
+          aggregates: [{ name: 'RowCount' }],
+          groupings: null,
+        },
+      },
+      {
+        id: 'comp-table',
+        componentData: 5,
         header: 'Account List',
         title: null,
         reportId: '00O000000000002',
@@ -202,7 +280,9 @@ const MOCK_DASHBOARD_RESPONSE = {
         { column: 0, row: 0, colspan: 4, rowspan: 8 },
         { column: 4, row: 0, colspan: 4, rowspan: 8 },
         { column: 8, row: 0, colspan: 4, rowspan: 8 },
-        { column: 0, row: 8, colspan: 12, rowspan: 6 },
+        { column: 0, row: 8, colspan: 3, rowspan: 8 },
+        { column: 3, row: 8, colspan: 5, rowspan: 8 },
+        { column: 8, row: 8, colspan: 4, rowspan: 8 },
       ],
       numColumns: 12,
       rowHeight: 36,

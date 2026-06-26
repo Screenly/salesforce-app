@@ -110,6 +110,7 @@ main {
   flex: 1;
   position: relative;
   min-height: 0;
+  container-type: size;
 }
 
 .report-chart-card {
@@ -195,6 +196,21 @@ main {
   color: var(--color-text-secondary);
   line-height: 1.6;
   word-break: break-word;
+}
+
+/* Metric component */
+
+.metric-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: clamp(2rem, 30cqh, 20rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--color-text-primary);
+  text-align: center;
 }
 
 /* Empty state */

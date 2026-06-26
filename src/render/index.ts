@@ -4,6 +4,7 @@ import type {
   ComponentDataItem,
   ReportResult,
 } from '../types'
+
 import { CHART_TYPES, renderChart } from './chart'
 import { renderGauge } from './gauge'
 import { renderTable } from './table'
@@ -25,6 +26,8 @@ function renderComponent(
 
   if (sfTypeLower === 'gauge') {
     renderGauge(container, item.componentId, item.reportResult, meta)
+  } else if (sfTypeLower === 'metric') {
+    renderMetric(container, item.reportResult, meta)
   } else if (CHART_TYPES.has(sfTypeLower)) {
     renderChart(container, item.componentId, item.reportResult, sfType, title)
   } else {
@@ -103,6 +106,26 @@ function renderStat(
   stat.appendChild(statValue)
   stat.appendChild(statLabel)
   container.appendChild(stat)
+}
+
+function renderMetric(
+  container: HTMLElement,
+  reportResult: ReportResult,
+  _meta: DashboardMetadataComponent
+): void {
+  const entry = reportResult.factMap?.['T!T']
+
+  if (!entry) {
+    renderEmpty(container)
+    return
+  }
+
+  const value = entry.aggregates?.[0]?.value ?? 0
+
+  const el = document.createElement('div')
+  el.className = 'metric-value'
+  el.textContent = Number(value).toLocaleString()
+  container.appendChild(el)
 }
 
 function hasReportDetailRows(reportResult: ReportResult): boolean {
