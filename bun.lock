@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "salesforce-app",
+      "dependencies": {
+        "chartjs-plugin-datalabels": "^2.2.0",
+      },
       "devDependencies": {
         "@playwright/test": "^1.58.0",
         "@screenly/edge-apps": "^1.0.0",
@@ -540,6 +543,8 @@
     "chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
 
     "chart.js": ["chart.js@4.5.1", "", { "dependencies": { "@kurkle/color": "^0.3.0" } }, "sha512-GIjfiT9dbmHRiYi6Nl2yFCq7kkwdkp1W/lp2J99rX0yo9tgJGn3lKQATztIjb5tVtevcBtIdICNWqlq5+E8/Pw=="],
+
+    "chartjs-plugin-datalabels": ["chartjs-plugin-datalabels@2.2.0", "", { "peerDependencies": { "chart.js": ">=3.0.0" } }, "sha512-14ZU30lH7n89oq+A4bWaJPnAG8a7ZTk7dKf48YAzMvJjQtjrgg5Dpk9f+LbjCF6bpx3RAGTeL13IXpKQYyRvlw=="],
 
     "chokidar": ["chokidar@3.6.0", "", { "dependencies": { "anymatch": "~3.1.2", "braces": "~3.0.2", "glob-parent": "~5.1.2", "is-binary-path": "~2.1.0", "is-glob": "~4.0.1", "normalize-path": "~3.0.0", "readdirp": "~3.6.0" }, "optionalDependencies": { "fsevents": "~2.3.2" } }, "sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw=="],
 

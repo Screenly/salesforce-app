@@ -1,8 +1,9 @@
 import { Chart, registerables } from 'chart.js'
+import ChartDataLabels from 'chartjs-plugin-datalabels'
 import type { ReportResult } from '../types'
 import { renderEmpty } from './utils'
 
-Chart.register(...registerables)
+Chart.register(...registerables, ChartDataLabels)
 
 Chart.defaults.animation = false
 
@@ -62,6 +63,40 @@ function extractChartData(reportResult: ReportResult): {
   return { labels, values }
 }
 
+function buildDatalabelsConfig(chartType: 'bar' | 'line' | 'pie' | 'doughnut') {
+  const base = {
+    color: '#ffffff' as const,
+    font: { weight: 'bold' as const, size: 20 },
+    formatter: (value: number) => (value === 0 ? '' : value.toLocaleString()),
+  }
+  if (chartType === 'bar') {
+    return {
+      ...base,
+      anchor: 'end' as const,
+      align: 'start' as const,
+      clamp: true,
+    }
+  }
+  if (chartType === 'line') {
+    return {
+      ...base,
+      font: { weight: 'bold' as const, size: 15 },
+      anchor: 'end' as const,
+      align: 'top' as const,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      borderRadius: 3,
+      padding: { top: 2, bottom: 2, left: 4, right: 4 },
+    }
+  }
+  return { ...base, anchor: 'center' as const, align: 'center' as const }
+}
+
+function buildScalesConfig(chartType: 'bar' | 'line' | 'pie' | 'doughnut') {
+  if (chartType !== 'bar' && chartType !== 'line') return undefined
+  const axis = { ticks: { color: '#ffffff' }, grid: { color: '#ffffff22' } }
+  return { x: axis, y: axis }
+}
+
 export function renderChart(
   container: HTMLElement,
   componentId: string,
@@ -105,20 +140,9 @@ export function renderChart(
       maintainAspectRatio: false,
       plugins: {
         legend: { labels: { color: '#ffffff' } },
+        datalabels: buildDatalabelsConfig(chartType),
       },
-      scales:
-        chartType === 'bar' || chartType === 'line'
-          ? {
-              x: {
-                ticks: { color: '#ffffff' },
-                grid: { color: '#ffffff22' },
-              },
-              y: {
-                ticks: { color: '#ffffff' },
-                grid: { color: '#ffffff22' },
-              },
-            }
-          : undefined,
+      scales: buildScalesConfig(chartType),
     },
   })
 }

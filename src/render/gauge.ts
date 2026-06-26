@@ -18,8 +18,7 @@ function drawGaugeNeedle(
   cx: number,
   cy: number,
   outerR: number,
-  pct: number,
-  value: number
+  pct: number
 ): void {
   const angle = Math.PI + pct * Math.PI
   ctx.save()
@@ -37,10 +36,38 @@ function drawGaugeNeedle(
   ctx.arc(cx, cy, outerR * 0.06, 0, 2 * Math.PI)
   ctx.fillStyle = '#ffffff'
   ctx.fill()
-  ctx.font = `bold ${Math.floor(outerR * 0.22)}px sans-serif`
+  ctx.restore()
+}
+
+function drawGaugeBreakLabels(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  outerR: number,
+  innerR: number,
+  min: number,
+  max: number,
+  breaks: { lowerBound: number; upperBound: number }[]
+): void {
+  const labelR = (outerR + innerR) / 2
+  const fontSize = Math.max(13, Math.floor(outerR * 0.14))
+  const range = max - min
+  ctx.save()
+  ctx.font = `bold ${fontSize}px sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(String(value), cx, cy + outerR * 0.35)
+
+  for (const b of breaks) {
+    const midVal = (b.lowerBound + b.upperBound) / 2
+    const pct = (midVal - min) / range
+    const angle = Math.PI + pct * Math.PI
+    const x = cx + labelR * Math.cos(angle)
+    const y = cy + labelR * Math.sin(angle)
+
+    ctx.fillStyle = '#ffffff'
+    ctx.fillText(String(b.upperBound), x, y)
+  }
+
   ctx.restore()
 }
 
@@ -77,7 +104,17 @@ export function renderGauge(
       const { ctx } = chart
       const arcEl = chart.getDatasetMeta(0).data[0] as ArcElement
       if (!arcEl) return
-      drawGaugeNeedle(ctx, arcEl.x, arcEl.y, arcEl.outerRadius, pct, value)
+      drawGaugeBreakLabels(
+        ctx,
+        arcEl.x,
+        arcEl.y,
+        arcEl.outerRadius,
+        arcEl.innerRadius,
+        min,
+        max,
+        breaks
+      )
+      drawGaugeNeedle(ctx, arcEl.x, arcEl.y, arcEl.outerRadius, pct)
     },
   }
 
@@ -101,6 +138,7 @@ export function renderGauge(
       plugins: {
         legend: { display: false },
         tooltip: { enabled: false },
+        datalabels: { display: false },
       },
     },
     plugins: [needlePlugin],
