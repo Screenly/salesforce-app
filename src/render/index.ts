@@ -2,6 +2,7 @@ import type {
   DashboardResults,
   DashboardMetadataComponent,
   ComponentDataItem,
+  ReportResult,
 } from '../types'
 
 import { CHART_TYPES, renderChart } from './chart'
@@ -118,7 +119,7 @@ export function renderDashboard(
 
 export function renderReport(
   contentId: string,
-  reportResult: import('../types').ReportResult,
+  reportResult: ReportResult,
   showLabels: boolean = false
 ): void {
   const { dashboardTitle, chartsGrid } = getDashboardElements()

@@ -404,6 +404,19 @@ const { screenlyJsContent: dashboardLabelsScreenlyJsContent } =
     }
   )
 
+const { screenlyJsContent: reportLabelsScreenlyJsContent } =
+  createMockScreenlyForScreenshots(
+    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    {
+      content_id: MOCK_REPORT_ID,
+      refresh_interval: '300',
+      display_errors: 'false',
+      show_labels: 'true',
+      screenly_oauth_tokens_url: 'http://localhost:3000/',
+      screenly_app_auth_token: 'mock-token',
+    }
+  )
+
 type BrowserContext = Awaited<ReturnType<Browser['newContext']>>
 
 async function takeScreenshot(
@@ -539,6 +552,22 @@ for (const [width, height] of [
       height,
       `report-${width}x${height}.png`,
       reportScreenlyJsContent,
+      (context) => setupReportRoutes(context)
+    )
+  })
+}
+
+for (const [width, height] of [
+  [1920, 1080],
+  [1080, 1920],
+]) {
+  test(`screenshot report-labels ${width}x${height}`, async ({ browser }) => {
+    await takeScreenshot(
+      browser,
+      width,
+      height,
+      `report-labels-${width}x${height}.png`,
+      reportLabelsScreenlyJsContent,
       (context) => setupReportRoutes(context)
     )
   })

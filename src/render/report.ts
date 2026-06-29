@@ -164,7 +164,7 @@ function renderReportTableCard(
     return false
   }
 
-  const meta = {
+  const meta: DashboardMetadataComponent = {
     id: contentId,
     header: reportName,
     title: reportName,
