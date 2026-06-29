@@ -49,3 +49,13 @@ settings:
         help_text: How often to refresh Salesforce data. Defaults to 300 seconds (5 minutes).
         type: number
       schema_version: 1
+  show_labels:
+    type: string
+    default_value: 'false'
+    title: Show Labels
+    optional: true
+    help_text:
+      properties:
+        help_text: Show data labels on charts and gauges.
+        type: boolean
+      schema_version: 1

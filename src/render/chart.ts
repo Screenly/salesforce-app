@@ -102,7 +102,8 @@ export function renderChart(
   componentId: string,
   reportResult: ReportResult,
   sfType: string,
-  title: string
+  title: string,
+  showLabels: boolean = false
 ): void {
   const { labels, values } = extractChartData(reportResult)
 
@@ -140,7 +141,9 @@ export function renderChart(
       maintainAspectRatio: false,
       plugins: {
         legend: { labels: { color: '#ffffff' } },
-        datalabels: buildDatalabelsConfig(chartType),
+        datalabels: showLabels
+          ? buildDatalabelsConfig(chartType)
+          : { display: false },
       },
       scales: buildScalesConfig(chartType),
     },
