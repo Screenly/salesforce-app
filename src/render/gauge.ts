@@ -74,11 +74,43 @@ function drawGaugeBreakLabels(
   ctx.restore()
 }
 
+function buildNeedlePlugin(
+  componentId: string,
+  min: number,
+  max: number,
+  breaks: { lowerBound: number; upperBound: number }[],
+  pct: number,
+  showLabels: boolean
+) {
+  return {
+    id: `gaugeNeedle-${componentId}`,
+    afterDraw(chart: Chart) {
+      const { ctx } = chart
+      const arcEl = chart.getDatasetMeta(0).data[0] as ArcElement
+      if (!arcEl) return
+      if (showLabels) {
+        drawGaugeBreakLabels(
+          ctx,
+          arcEl.x,
+          arcEl.y,
+          arcEl.outerRadius,
+          arcEl.innerRadius,
+          min,
+          max,
+          breaks
+        )
+      }
+      drawGaugeNeedle(ctx, arcEl.x, arcEl.y, arcEl.outerRadius, pct)
+    },
+  }
+}
+
 export function renderGauge(
   container: HTMLElement,
   componentId: string,
   reportResult: ReportResult,
-  meta: DashboardMetadataComponent
+  meta: DashboardMetadataComponent,
+  showLabels: boolean = false
 ): void {
   const value = Number(
     reportResult.factMap?.['T!T']?.aggregates?.[0]?.value ?? 0
@@ -101,25 +133,14 @@ export function renderGauge(
   canvas.id = `chart-${componentId}`
   container.appendChild(canvas)
 
-  const needlePlugin = {
-    id: `gaugeNeedle-${componentId}`,
-    afterDraw(chart: Chart) {
-      const { ctx } = chart
-      const arcEl = chart.getDatasetMeta(0).data[0] as ArcElement
-      if (!arcEl) return
-      drawGaugeBreakLabels(
-        ctx,
-        arcEl.x,
-        arcEl.y,
-        arcEl.outerRadius,
-        arcEl.innerRadius,
-        min,
-        max,
-        breaks
-      )
-      drawGaugeNeedle(ctx, arcEl.x, arcEl.y, arcEl.outerRadius, pct)
-    },
-  }
+  const needlePlugin = buildNeedlePlugin(
+    componentId,
+    min,
+    max,
+    breaks,
+    pct,
+    showLabels
+  )
 
   const gaugeConfig: ChartConfiguration<'doughnut'> = {
     type: 'doughnut',

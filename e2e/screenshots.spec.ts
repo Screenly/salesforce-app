@@ -391,18 +391,28 @@ const { screenlyJsContent: reportScreenlyJsContent } =
     }
   )
 
+const { screenlyJsContent: dashboardLabelsScreenlyJsContent } =
+  createMockScreenlyForScreenshots(
+    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    {
+      content_id: MOCK_DASHBOARD_ID,
+      refresh_interval: '300',
+      display_errors: 'false',
+      show_labels: 'true',
+      screenly_oauth_tokens_url: 'http://localhost:3000/',
+      screenly_app_auth_token: 'mock-token',
+    }
+  )
+
+type BrowserContext = Awaited<ReturnType<Browser['newContext']>>
+
 async function takeScreenshot(
   browser: Browser,
   width: number,
   height: number,
   filename: string,
   screenlyJsContent: string,
-  setup: (context: Awaited<ReturnType<Browser['newContext']>>) => Promise<void>,
-  waitFor: (
-    page: Awaited<
-      ReturnType<Awaited<ReturnType<Browser['newContext']>>['newPage']>
-    >
-  ) => Promise<void>
+  setup: (context: BrowserContext) => Promise<void>
 ): Promise<void> {
   const screenshotsDir = getScreenshotsDir()
   const context = await browser.newContext({ viewport: { width, height } })
@@ -413,7 +423,7 @@ async function takeScreenshot(
   await setup(context)
 
   await page.goto('/?animations=false')
-  await waitFor(page)
+  await page.waitForLoadState('networkidle')
 
   await page.screenshot({
     path: path.join(screenshotsDir, filename),
@@ -421,6 +431,45 @@ async function takeScreenshot(
   })
 
   await context.close()
+}
+
+function mockCredentials(context: BrowserContext): Promise<void> {
+  return context.route(/access_token\//, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(MOCK_CREDENTIALS),
+    })
+  )
+}
+
+async function setupDashboardRoutes(
+  context: BrowserContext,
+  dashboardStatus: number
+): Promise<void> {
+  await mockCredentials(context)
+  await context.route(/analytics\/dashboards/, (route) =>
+    route.fulfill({
+      status: dashboardStatus,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        dashboardStatus === 200
+          ? MOCK_DASHBOARD_RESPONSE
+          : { message: dashboardStatus === 404 ? 'Not Found' : 'Unauthorized' }
+      ),
+    })
+  )
+}
+
+async function setupReportRoutes(context: BrowserContext): Promise<void> {
+  await mockCredentials(context)
+  await context.route(/analytics\/reports/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(MOCK_REPORT_RESPONSE),
+    })
+  )
 }
 
 for (const { width, height } of RESOLUTIONS) {
@@ -431,25 +480,7 @@ for (const { width, height } of RESOLUTIONS) {
       height,
       `dashboard-${width}x${height}.png`,
       dashboardScreenlyJsContent,
-      async (context) => {
-        await context.route(/access_token\//, async (route) => {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify(MOCK_CREDENTIALS),
-          })
-        })
-        await context.route(/analytics\/dashboards/, async (route) => {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify(MOCK_DASHBOARD_RESPONSE),
-          })
-        })
-      },
-      async (page) => {
-        await page.waitForLoadState('networkidle')
-      }
+      (context) => setupDashboardRoutes(context, 200)
     )
   })
 }
@@ -465,25 +496,7 @@ for (const [width, height] of [
       height,
       `error-${width}x${height}.png`,
       dashboardScreenlyJsContent,
-      async (context) => {
-        await context.route(/access_token\//, async (route) => {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify(MOCK_CREDENTIALS),
-          })
-        })
-        await context.route(/analytics\/dashboards/, async (route) => {
-          await route.fulfill({
-            status: 401,
-            contentType: 'application/json',
-            body: JSON.stringify({ message: 'Unauthorized' }),
-          })
-        })
-      },
-      async (page) => {
-        await page.waitForLoadState('networkidle')
-      }
+      (context) => setupDashboardRoutes(context, 401)
     )
   })
 }
@@ -495,27 +508,25 @@ test('screenshot error-not-found 3840x2160', async ({ browser }) => {
     2160,
     'error-not-found-3840x2160.png',
     dashboardScreenlyJsContent,
-    async (context) => {
-      await context.route(/access_token\//, async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(MOCK_CREDENTIALS),
-        })
-      })
-      await context.route(/analytics\/dashboards/, async (route) => {
-        await route.fulfill({
-          status: 404,
-          contentType: 'application/json',
-          body: JSON.stringify({ message: 'Not Found' }),
-        })
-      })
-    },
-    async (page) => {
-      await page.waitForLoadState('networkidle')
-    }
+    (context) => setupDashboardRoutes(context, 404)
   )
 })
+
+for (const [width, height] of [
+  [1920, 1080],
+  [1080, 1920],
+]) {
+  test(`screenshot dashboard-labels ${width}x${height}`, async ({ browser }) => {
+    await takeScreenshot(
+      browser,
+      width,
+      height,
+      `dashboard-labels-${width}x${height}.png`,
+      dashboardLabelsScreenlyJsContent,
+      (context) => setupDashboardRoutes(context, 200)
+    )
+  })
+}
 
 for (const [width, height] of [
   [3840, 2160],
@@ -528,25 +539,7 @@ for (const [width, height] of [
       height,
       `report-${width}x${height}.png`,
       reportScreenlyJsContent,
-      async (context) => {
-        await context.route(/access_token\//, async (route) => {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify(MOCK_CREDENTIALS),
-          })
-        })
-        await context.route(/analytics\/reports/, async (route) => {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify(MOCK_REPORT_RESPONSE),
-          })
-        })
-      },
-      async (page) => {
-        await page.waitForLoadState('networkidle')
-      }
+      (context) => setupReportRoutes(context)
     )
   })
 }

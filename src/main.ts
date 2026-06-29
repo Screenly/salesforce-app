@@ -23,7 +23,8 @@ async function loadAndRenderContent(
   contentType: SalesforceContentType,
   instanceUrl: string,
   accessToken: string,
-  contentId: string
+  contentId: string,
+  showLabels: boolean
 ): Promise<void> {
   if (contentType === 'dashboard') {
     const results = await getDashboardResults(
@@ -31,12 +32,12 @@ async function loadAndRenderContent(
       accessToken,
       contentId
     )
-    renderDashboard(results)
+    renderDashboard(results, showLabels)
     return
   }
 
   const results = await getReportResults(instanceUrl, accessToken, contentId)
-  renderReport(contentId, results)
+  renderReport(contentId, results, showLabels)
 }
 
 function handleError(message: string, displayErrors: boolean): void {
@@ -49,7 +50,8 @@ async function fetchAndRender(
   contentType: SalesforceContentType,
   getRuntimeState: () => RuntimeState,
   refreshToken: RefreshToken,
-  displayErrors: boolean
+  displayErrors: boolean,
+  showLabels: boolean
 ): Promise<void> {
   let { accessToken, instanceUrl } = getRuntimeState()
   const { credentialError } = getRuntimeState()
@@ -63,7 +65,13 @@ async function fetchAndRender(
   }
 
   try {
-    await loadAndRenderContent(contentType, instanceUrl, accessToken, contentId)
+    await loadAndRenderContent(
+      contentType,
+      instanceUrl,
+      accessToken,
+      contentId,
+      showLabels
+    )
     showScreen('dashboard-screen')
     return
   } catch (err) {
@@ -89,7 +97,13 @@ async function fetchAndRender(
       return
     }
 
-    await loadAndRenderContent(contentType, instanceUrl, accessToken, contentId)
+    await loadAndRenderContent(
+      contentType,
+      instanceUrl,
+      accessToken,
+      contentId,
+      showLabels
+    )
     showScreen('dashboard-screen')
   } catch (retryErr) {
     handleError(
@@ -105,9 +119,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupErrorHandling()
 
   const contentId = getSettingWithDefault<string>('content_id', '')
-  const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
   const displayErrors =
     getSettingWithDefault<string>('display_errors', 'false') === 'true'
+  const refreshInterval = getSettingWithDefault<number>('refresh_interval', 300)
+  const showLabels =
+    getSettingWithDefault<string>('show_labels', 'false') === 'true'
 
   if (!contentId) {
     showError('Please configure the Salesforce Content ID in settings.')
@@ -157,7 +173,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       contentType,
       getRuntimeState,
       refreshToken,
-      displayErrors
+      displayErrors,
+      showLabels
     )
 
   await run()
