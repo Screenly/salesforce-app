@@ -1,7 +1,6 @@
 import './css/style.css'
 import '@screenly/edge-apps/components'
 import {
-  getCredentials,
   getSettingWithDefault,
   initTokenRefreshLoop,
   setupErrorHandling,
@@ -10,19 +9,14 @@ import {
 import { reportError, setupSentry } from '@screenly/edge-apps/utils'
 import { getDashboardResults, getReportResults, AuthError } from './api'
 import { inferSalesforceContentType } from './content'
+import { createCredentialManager } from './credentials'
+import type { RefreshToken, RuntimeState } from './credentials'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
 import type { SalesforceContentType } from './types'
 
 setupSentry('salesforce', {
   salesforce: { content_id: screenly.settings.content_id },
 })
-
-type RefreshToken = () => Promise<void>
-type RuntimeState = {
-  accessToken: string | null
-  instanceUrl: string | null
-  credentialError: Error | null
-}
 
 async function loadAndRenderContent(
   contentType: SalesforceContentType,
@@ -146,39 +140,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     return
   }
 
-  let accessToken: string | null =
-    getSettingWithDefault('access_token', '') || null
-  let instanceUrl: string | null = null
-  let credentialError: Error | null = null
-  let hasReportedCredentialError = false
-
-  const refreshToken = async () => {
-    try {
-      const { token, metadata } = await getCredentials()
-      const nextInstanceUrl = (metadata?.instance_url as string) ?? instanceUrl
-
-      if (!token || !nextInstanceUrl) {
-        throw new Error('No access token or instance URL available.')
-      }
-
-      accessToken = token
-      instanceUrl = nextInstanceUrl
-      credentialError = null
-      hasReportedCredentialError = false
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err))
-      if (!hasReportedCredentialError) {
-        reportError(error, {
-          source: 'salesforce-credentials',
-          contentId,
-          contentType,
-        })
-        hasReportedCredentialError = true
-      }
-      credentialError = error
-      throw error
-    }
-  }
+  const { refreshToken, getRuntimeState } = createCredentialManager(
+    contentId,
+    contentType
+  )
 
   try {
     await refreshToken()
@@ -187,12 +152,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initTokenRefreshLoop(refreshToken)
-
-  const getRuntimeState = (): RuntimeState => ({
-    accessToken,
-    instanceUrl,
-    credentialError,
-  })
 
   const run = () =>
     fetchAndRender(
