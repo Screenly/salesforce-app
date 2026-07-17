@@ -7,10 +7,15 @@ import {
   setupErrorHandling,
   signalReady,
 } from '@screenly/edge-apps'
+import { reportError, setupSentry } from '@screenly/edge-apps/utils'
 import { getDashboardResults, getReportResults, AuthError } from './api'
 import { inferSalesforceContentType } from './content'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
 import type { SalesforceContentType } from './types'
+
+setupSentry('salesforce', {
+  salesforce: { content_id: screenly.settings.content_id },
+})
 
 type RefreshToken = () => Promise<void>
 type RuntimeState = {
@@ -76,6 +81,7 @@ async function fetchAndRender(
     return
   } catch (err) {
     if (!(err instanceof AuthError)) {
+      reportError(err, { source: 'salesforce-content', contentId, contentType })
       handleError(
         err instanceof Error ? err.message : 'Failed to load content.',
         displayErrors
@@ -144,18 +150,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     getSettingWithDefault('access_token', '') || null
   let instanceUrl: string | null = null
   let credentialError: Error | null = null
+  let hasReportedCredentialError = false
 
   const refreshToken = async () => {
-    const { token, metadata } = await getCredentials()
-    accessToken = token
-    instanceUrl = (metadata?.instance_url as string) ?? instanceUrl
-    credentialError = null
+    try {
+      const { token, metadata } = await getCredentials()
+      const nextInstanceUrl = (metadata?.instance_url as string) ?? instanceUrl
+
+      if (!token || !nextInstanceUrl) {
+        throw new Error('No access token or instance URL available.')
+      }
+
+      accessToken = token
+      instanceUrl = nextInstanceUrl
+      credentialError = null
+      hasReportedCredentialError = false
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      if (!hasReportedCredentialError) {
+        reportError(error, {
+          source: 'salesforce-credentials',
+          contentId,
+          contentType,
+        })
+        hasReportedCredentialError = true
+      }
+      credentialError = error
+      throw error
+    }
   }
 
   try {
     await refreshToken()
   } catch (err) {
-    credentialError = err instanceof Error ? err : new Error(String(err))
     console.warn('Failed to fetch initial credentials:', err)
   }
 

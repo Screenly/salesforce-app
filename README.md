@@ -89,10 +89,16 @@ screenly edge-app instance create
 | `content_id`       | string | Yes      | Salesforce dashboard ID or report ID to display                                |
 | `refresh_interval` | string | No       | How often (in seconds) to refresh Salesforce data. Default: `300`              |
 | `display_errors`   | string | No       | Display errors on screen for debugging (`true`/`false`). Default: `false`      |
+| `show_labels`      | string | No       | Show data labels on charts and gauges (`true`/`false`). Default: `false`       |
+| `sentry_dsn`       | secret | No       | Sentry DSN for reporting credential and content-load errors. Global setting — leave empty to disable. |
 
 ## Authentication
 
 This app uses the Screenly OAuth service to obtain a Salesforce access token at runtime. For local development, the `mock-authenticator` acts as a stand-in for that service.
+
+## Error Reporting
+
+If `sentry_dsn` is set, the app reports credential and content-load failures to Sentry via `@screenly/edge-apps/utils`. Repeated credential-refresh failures (e.g. during the background token-refresh loop) are deduped so only the first consecutive failure is reported, not every retry. Leave `sentry_dsn` empty to disable reporting entirely.
 
 ## Finding Your Content ID
 

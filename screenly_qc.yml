@@ -49,6 +49,17 @@ settings:
         help_text: How often to refresh Salesforce data. Defaults to 300 seconds (5 minutes).
         type: number
       schema_version: 1
+  sentry_dsn:
+    type: secret
+    title: Sentry DSN
+    optional: true
+    is_global: true
+    help_text:
+      properties:
+        advanced: true
+        help_text: Sentry DSN for reporting credential and content-load errors. Leave empty to disable.
+        type: string
+      schema_version: 1
   show_labels:
     type: string
     default_value: 'false'
