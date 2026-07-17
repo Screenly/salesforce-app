@@ -1,23 +1,22 @@
 import './css/style.css'
 import '@screenly/edge-apps/components'
 import {
-  getCredentials,
   getSettingWithDefault,
   initTokenRefreshLoop,
   setupErrorHandling,
   signalReady,
 } from '@screenly/edge-apps'
+import { reportError, setupSentry } from '@screenly/edge-apps/utils'
 import { getDashboardResults, getReportResults, AuthError } from './api'
 import { inferSalesforceContentType } from './content'
+import { createCredentialManager } from './credentials'
+import type { RefreshToken, RuntimeState } from './credentials'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
 import type { SalesforceContentType } from './types'
 
-type RefreshToken = () => Promise<void>
-type RuntimeState = {
-  accessToken: string | null
-  instanceUrl: string | null
-  credentialError: Error | null
-}
+setupSentry('salesforce', {
+  salesforce: { content_id: screenly.settings.content_id },
+})
 
 async function loadAndRenderContent(
   contentType: SalesforceContentType,
@@ -76,6 +75,7 @@ async function fetchAndRender(
     return
   } catch (err) {
     if (!(err instanceof AuthError)) {
+      reportError(err, { source: 'salesforce-content', contentId, contentType })
       handleError(
         err instanceof Error ? err.message : 'Failed to load content.',
         displayErrors
@@ -140,32 +140,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     return
   }
 
-  let accessToken: string | null =
-    getSettingWithDefault('access_token', '') || null
-  let instanceUrl: string | null = null
-  let credentialError: Error | null = null
-
-  const refreshToken = async () => {
-    const { token, metadata } = await getCredentials()
-    accessToken = token
-    instanceUrl = (metadata?.instance_url as string) ?? instanceUrl
-    credentialError = null
-  }
+  const { refreshToken, getRuntimeState } = createCredentialManager(
+    contentId,
+    contentType
+  )
 
   try {
     await refreshToken()
   } catch (err) {
-    credentialError = err instanceof Error ? err : new Error(String(err))
     console.warn('Failed to fetch initial credentials:', err)
   }
 
   initTokenRefreshLoop(refreshToken)
-
-  const getRuntimeState = (): RuntimeState => ({
-    accessToken,
-    instanceUrl,
-    credentialError,
-  })
 
   const run = () =>
     fetchAndRender(
