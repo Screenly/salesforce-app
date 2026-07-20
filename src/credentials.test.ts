@@ -114,4 +114,23 @@ describe('createCredentialManager > error responses', () => {
     )
     expect(reportError).toHaveBeenCalledTimes(1)
   })
+
+  test('falls back to a status-based message when the error response body is not JSON', async () => {
+    globalThis.fetch = mock(async () => ({
+      status: 400,
+      ok: false,
+      json: async () => {
+        throw new SyntaxError('Unexpected end of JSON input')
+      },
+    })) as unknown as typeof fetch
+    const { refreshToken, getRuntimeState } = makeManager()
+
+    await expect(refreshToken()).rejects.toThrow(
+      'Screenly returned an unexpected error (400).'
+    )
+    expect(getRuntimeState().credentialError?.message).toBe(
+      'Screenly returned an unexpected error (400).'
+    )
+    expect(reportError).toHaveBeenCalledTimes(1)
+  })
 })

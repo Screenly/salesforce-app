@@ -34,7 +34,7 @@ async function fetchCredentials(): Promise<{
     )
   }
 
-  const body = await response.json()
+  const body = await response.json().catch(() => undefined)
 
   if (!response.ok) {
     throw new Error(
@@ -43,7 +43,7 @@ async function fetchCredentials(): Promise<{
     )
   }
 
-  const { token, metadata } = body
+  const { token, metadata } = body ?? {}
   return { token, metadata }
 }
 
