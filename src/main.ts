@@ -48,6 +48,66 @@ function handleError(message: string, displayErrors: boolean): void {
   showError(message)
 }
 
+async function retryAfterRefresh(
+  contentId: string,
+  contentType: SalesforceContentType,
+  getRuntimeState: () => RuntimeState,
+  refreshToken: RefreshToken,
+  displayErrors: boolean,
+  showLabels: boolean,
+  hasRenderedOnce: boolean
+): Promise<boolean> {
+  try {
+    await refreshToken()
+  } catch (retryErr) {
+    if (retryErr instanceof BackendServerError) return hasRenderedOnce
+
+    handleError(
+      retryErr instanceof Error
+        ? retryErr.message
+        : 'Session expired. Please re-authenticate.',
+      displayErrors
+    )
+    return true
+  }
+
+  const { accessToken, instanceUrl } = getRuntimeState()
+
+  if (!accessToken) {
+    handleError('No access token.', displayErrors)
+    return true
+  }
+  if (!instanceUrl) {
+    handleError('No instance URL available.', displayErrors)
+    return true
+  }
+
+  try {
+    await loadAndRenderContent(
+      contentType,
+      instanceUrl,
+      accessToken,
+      contentId,
+      showLabels
+    )
+    showScreen('dashboard-screen')
+    return true
+  } catch (retryErr) {
+    if (!(retryErr instanceof AuthError)) {
+      reportError(retryErr, {
+        source: 'salesforce-content',
+        contentId,
+        contentType,
+      })
+    }
+    handleError(
+      retryErr instanceof Error ? retryErr.message : 'Failed to load content.',
+      displayErrors
+    )
+    return true
+  }
+}
+
 async function fetchAndRender(
   contentId: string,
   contentType: SalesforceContentType,
@@ -57,8 +117,7 @@ async function fetchAndRender(
   showLabels: boolean,
   hasRenderedOnce: boolean
 ): Promise<boolean> {
-  let { accessToken, instanceUrl } = getRuntimeState()
-  const { credentialError } = getRuntimeState()
+  const { accessToken, instanceUrl, credentialError } = getRuntimeState()
 
   if (!accessToken || !instanceUrl) {
     if (credentialError instanceof BackendServerError) return hasRenderedOnce
@@ -91,39 +150,15 @@ async function fetchAndRender(
     }
   }
 
-  try {
-    await refreshToken()
-    ;({ accessToken, instanceUrl } = getRuntimeState())
-
-    if (!accessToken) {
-      handleError('No access token.', displayErrors)
-      return true
-    }
-    if (!instanceUrl) {
-      handleError('No instance URL available.', displayErrors)
-      return true
-    }
-
-    await loadAndRenderContent(
-      contentType,
-      instanceUrl,
-      accessToken,
-      contentId,
-      showLabels
-    )
-    showScreen('dashboard-screen')
-    return true
-  } catch (retryErr) {
-    if (retryErr instanceof BackendServerError) return hasRenderedOnce
-
-    handleError(
-      retryErr instanceof Error
-        ? retryErr.message
-        : 'Session expired. Please re-authenticate.',
-      displayErrors
-    )
-    return true
-  }
+  return retryAfterRefresh(
+    contentId,
+    contentType,
+    getRuntimeState,
+    refreshToken,
+    displayErrors,
+    showLabels,
+    hasRenderedOnce
+  )
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
