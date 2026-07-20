@@ -175,11 +175,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       showLabels,
       hasRenderedOnce
     )
+    if (rendered && !hasRenderedOnce) signalReady()
     hasRenderedOnce = hasRenderedOnce || rendered
     return rendered
   }
 
-  if (await run()) signalReady()
+  await run()
 
   setInterval(async () => {
     try {
