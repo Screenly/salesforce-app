@@ -15,7 +15,7 @@ export const NO_CREDENTIALS_MESSAGE =
   'No access token or instance URL available.'
 
 async function fetchCredentials(): Promise<{
-  token: string
+  token: string | undefined
   metadata?: Record<string, unknown>
 }> {
   const response = await fetch(
