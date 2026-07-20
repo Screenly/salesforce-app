@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, mock } from 'bun:test'
+import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 
 mock.module('@screenly/edge-apps', () => ({
   getSettingWithDefault: (_key: string, defaultValue: unknown) => defaultValue,
@@ -38,6 +38,8 @@ function failWithNetworkError(message: string) {
   }) as unknown as typeof fetch
 }
 
+const originalFetch = globalThis.fetch
+
 beforeEach(() => {
   ;(globalThis as Record<string, unknown>).screenly = {
     settings: {
@@ -46,6 +48,10 @@ beforeEach(() => {
     },
   }
   reportError.mockClear()
+})
+
+afterEach(() => {
+  globalThis.fetch = originalFetch
 })
 
 describe('createCredentialManager > success', () => {
