@@ -9,10 +9,10 @@ export type RuntimeState = {
   credentialError: Error | null
 }
 
-// Distinguishes a Screenly backend outage (5xx) from an expected failure
-// (e.g. "Salesforce integration is not connected", a 400) so callers can
-// skip/ignore transient backend errors instead of showing them as content errors.
 export class BackendServerError extends Error {}
+
+export const NO_CREDENTIALS_MESSAGE =
+  'No access token or instance URL available.'
 
 async function fetchCredentials(): Promise<{
   token: string
@@ -63,7 +63,7 @@ export function createCredentialManager(
       const nextInstanceUrl = (metadata?.instance_url as string) ?? instanceUrl
 
       if (!token || !nextInstanceUrl) {
-        throw new Error('No access token or instance URL available.')
+        throw new Error(NO_CREDENTIALS_MESSAGE)
       }
 
       accessToken = token

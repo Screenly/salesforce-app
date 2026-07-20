@@ -9,7 +9,11 @@ import {
 import { reportError, setupSentry } from '@screenly/edge-apps/utils'
 import { getDashboardResults, getReportResults, AuthError } from './api'
 import { inferSalesforceContentType } from './content'
-import { BackendServerError, createCredentialManager } from './credentials'
+import {
+  BackendServerError,
+  createCredentialManager,
+  NO_CREDENTIALS_MESSAGE,
+} from './credentials'
 import type { RefreshToken, RuntimeState } from './credentials'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
 import type { SalesforceContentType } from './types'
@@ -44,10 +48,6 @@ function handleError(message: string, displayErrors: boolean): void {
   showError(message)
 }
 
-// Returns whether the caller reached a terminal state (rendered content or
-// intentionally showed an error) as opposed to skipping this rotation
-// entirely, which happens only when a Screenly backend outage (5xx) hits
-// before anything has ever been shown — see BackendServerError.
 async function fetchAndRender(
   contentId: string,
   contentType: SalesforceContentType,
@@ -61,12 +61,10 @@ async function fetchAndRender(
   const { credentialError } = getRuntimeState()
 
   if (!accessToken || !instanceUrl) {
-    // Backend outage: skip the asset while preloading, or keep showing the
-    // last-rendered content once something has already been displayed.
     if (credentialError instanceof BackendServerError) return hasRenderedOnce
 
     handleError(
-      credentialError?.message ?? 'No access token or instance URL available.',
+      credentialError?.message ?? NO_CREDENTIALS_MESSAGE,
       displayErrors
     )
     return true
