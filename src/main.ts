@@ -9,7 +9,7 @@ import {
 import { reportError, setupSentry } from '@screenly/edge-apps/utils'
 import { getDashboardResults, getReportResults, AuthError } from './api'
 import { inferSalesforceContentType } from './content'
-import { createCredentialManager } from './credentials'
+import { BackendServerError, createCredentialManager } from './credentials'
 import type { RefreshToken, RuntimeState } from './credentials'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
 import type { SalesforceContentType } from './types'
@@ -44,23 +44,32 @@ function handleError(message: string, displayErrors: boolean): void {
   showError(message)
 }
 
+// Returns whether the caller reached a terminal state (rendered content or
+// intentionally showed an error) as opposed to skipping this rotation
+// entirely, which happens only when a Screenly backend outage (5xx) hits
+// before anything has ever been shown — see BackendServerError.
 async function fetchAndRender(
   contentId: string,
   contentType: SalesforceContentType,
   getRuntimeState: () => RuntimeState,
   refreshToken: RefreshToken,
   displayErrors: boolean,
-  showLabels: boolean
-): Promise<void> {
+  showLabels: boolean,
+  hasRenderedOnce: boolean
+): Promise<boolean> {
   let { accessToken, instanceUrl } = getRuntimeState()
   const { credentialError } = getRuntimeState()
 
   if (!accessToken || !instanceUrl) {
+    // Backend outage: skip the asset while preloading, or keep showing the
+    // last-rendered content once something has already been displayed.
+    if (credentialError instanceof BackendServerError) return hasRenderedOnce
+
     handleError(
       credentialError?.message ?? 'No access token or instance URL available.',
       displayErrors
     )
-    return
+    return true
   }
 
   try {
@@ -72,7 +81,7 @@ async function fetchAndRender(
       showLabels
     )
     showScreen('dashboard-screen')
-    return
+    return true
   } catch (err) {
     if (!(err instanceof AuthError)) {
       reportError(err, { source: 'salesforce-content', contentId, contentType })
@@ -80,7 +89,7 @@ async function fetchAndRender(
         err instanceof Error ? err.message : 'Failed to load content.',
         displayErrors
       )
-      return
+      return true
     }
   }
 
@@ -90,11 +99,11 @@ async function fetchAndRender(
 
     if (!accessToken) {
       handleError('No access token.', displayErrors)
-      return
+      return true
     }
     if (!instanceUrl) {
       handleError('No instance URL available.', displayErrors)
-      return
+      return true
     }
 
     await loadAndRenderContent(
@@ -105,13 +114,17 @@ async function fetchAndRender(
       showLabels
     )
     showScreen('dashboard-screen')
+    return true
   } catch (retryErr) {
+    if (retryErr instanceof BackendServerError) return hasRenderedOnce
+
     handleError(
       retryErr instanceof Error
         ? retryErr.message
         : 'Session expired. Please re-authenticate.',
       displayErrors
     )
+    return true
   }
 }
 
@@ -153,18 +166,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initTokenRefreshLoop(refreshToken)
 
-  const run = () =>
-    fetchAndRender(
+  let hasRenderedOnce = false
+  const run = async () => {
+    const rendered = await fetchAndRender(
       contentId,
       contentType,
       getRuntimeState,
       refreshToken,
       displayErrors,
-      showLabels
+      showLabels,
+      hasRenderedOnce
     )
+    hasRenderedOnce = hasRenderedOnce || rendered
+    return rendered
+  }
 
-  await run()
-  signalReady()
+  if (await run()) signalReady()
 
   setInterval(async () => {
     try {
