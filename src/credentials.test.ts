@@ -92,12 +92,18 @@ describe('createCredentialManager > error responses', () => {
   })
 
   test('throws a BackendServerError on a 5xx response, without parsing the body', async () => {
-    globalThis.fetch = fakeResponse(503, undefined)
+    const json = mock(async () => ({}))
+    globalThis.fetch = mock(async () => ({
+      status: 503,
+      ok: false,
+      json,
+    })) as unknown as typeof fetch
     const { refreshToken, getRuntimeState } = makeManager()
 
     await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
     expect(getRuntimeState().credentialError).toBeInstanceOf(BackendServerError)
     expect(reportError).toHaveBeenCalledTimes(1)
+    expect(json).not.toHaveBeenCalled()
   })
 
   test('surfaces the backend-provided reason for a non-5xx error response', async () => {
