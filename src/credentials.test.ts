@@ -17,25 +17,31 @@ function makeManager() {
   return createCredentialManager(CONTENT_ID, CONTENT_TYPE)
 }
 
-function fakeResponse(status: number, body: unknown): typeof fetch {
-  return mock(async () => ({
+function stubFetch(impl: () => Promise<unknown>) {
+  const fetchMock = mock(impl)
+  globalThis.fetch = fetchMock as unknown as typeof fetch
+  return fetchMock
+}
+
+function fakeResponse(status: number, body: unknown) {
+  return stubFetch(async () => ({
     status,
     ok: status >= 200 && status < 300,
     json: async () => body,
-  })) as unknown as typeof fetch
+  }))
 }
 
 function succeed() {
-  globalThis.fetch = fakeResponse(200, {
+  fakeResponse(200, {
     token: 'abc',
     metadata: { instance_url: 'https://na1.salesforce.com' },
   })
 }
 
 function failWithNetworkError(message: string) {
-  globalThis.fetch = mock(async () => {
+  stubFetch(async () => {
     throw new Error(message)
-  }) as unknown as typeof fetch
+  })
 }
 
 const originalFetch = globalThis.fetch
@@ -52,9 +58,10 @@ beforeEach(() => {
 
 afterEach(() => {
   globalThis.fetch = originalFetch
+  delete (globalThis as Record<string, unknown>).screenly
 })
 
-describe('createCredentialManager > success', () => {
+describe('success', () => {
   test('stores the access token and instance url on success', async () => {
     succeed()
     const { refreshToken, getRuntimeState } = makeManager()
@@ -85,9 +92,41 @@ describe('createCredentialManager > success', () => {
   })
 })
 
-describe('createCredentialManager > error responses', () => {
+describe('backend outage errors', () => {
+  async function expectBackendServerError() {
+    const { refreshToken, getRuntimeState } = makeManager()
+
+    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
+    expect(getRuntimeState().credentialError).toBeInstanceOf(BackendServerError)
+    expect(reportError).toHaveBeenCalledTimes(1)
+  }
+
+  test('throws on a 5xx response, without parsing the body', async () => {
+    const json = mock(async () => ({}))
+    stubFetch(async () => ({ status: 503, ok: false, json }))
+
+    await expectBackendServerError()
+    expect(json).not.toHaveBeenCalled()
+  })
+
+  test('throws when the network request itself fails', async () => {
+    stubFetch(async () => {
+      throw new TypeError('Failed to fetch')
+    })
+
+    await expectBackendServerError()
+  })
+
+  test('throws on a 429 response', async () => {
+    fakeResponse(429, undefined)
+
+    await expectBackendServerError()
+  })
+})
+
+describe('other errors', () => {
   test('throws and reports when the backend responds without a token', async () => {
-    globalThis.fetch = fakeResponse(200, { token: '', metadata: undefined })
+    fakeResponse(200, { token: '', metadata: undefined })
     const { refreshToken, getRuntimeState } = makeManager()
 
     await expect(refreshToken()).rejects.toThrow(NO_CREDENTIALS_MESSAGE)
@@ -97,25 +136,8 @@ describe('createCredentialManager > error responses', () => {
     expect(reportError).toHaveBeenCalledTimes(1)
   })
 
-  test('throws a BackendServerError on a 5xx response, without parsing the body', async () => {
-    const json = mock(async () => ({}))
-    globalThis.fetch = mock(async () => ({
-      status: 503,
-      ok: false,
-      json,
-    })) as unknown as typeof fetch
-    const { refreshToken, getRuntimeState } = makeManager()
-
-    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
-    expect(getRuntimeState().credentialError).toBeInstanceOf(BackendServerError)
-    expect(reportError).toHaveBeenCalledTimes(1)
-    expect(json).not.toHaveBeenCalled()
-  })
-
   test('surfaces the backend-provided reason for a non-5xx error response', async () => {
-    globalThis.fetch = fakeResponse(400, {
-      error: 'Salesforce integration is not connected',
-    })
+    fakeResponse(400, { error: 'Salesforce integration is not connected' })
     const { refreshToken, getRuntimeState } = makeManager()
 
     await expect(refreshToken()).rejects.toThrow(
@@ -123,18 +145,33 @@ describe('createCredentialManager > error responses', () => {
     )
     expect(getRuntimeState().credentialError?.message).toBe(
       'Salesforce integration is not connected'
+    )
+    expect(reportError).toHaveBeenCalledTimes(1)
+  })
+
+  test('falls back to a status-based message when the backend error is not a string', async () => {
+    fakeResponse(400, {
+      error: { message: 'Salesforce integration is not connected' },
+    })
+    const { refreshToken, getRuntimeState } = makeManager()
+
+    await expect(refreshToken()).rejects.toThrow(
+      'Screenly returned an unexpected error (400).'
+    )
+    expect(getRuntimeState().credentialError?.message).toBe(
+      'Screenly returned an unexpected error (400).'
     )
     expect(reportError).toHaveBeenCalledTimes(1)
   })
 
   test('falls back to a status-based message when the error response body is not JSON', async () => {
-    globalThis.fetch = mock(async () => ({
+    stubFetch(async () => ({
       status: 400,
       ok: false,
       json: async () => {
         throw new SyntaxError('Unexpected end of JSON input')
       },
-    })) as unknown as typeof fetch
+    }))
     const { refreshToken, getRuntimeState } = makeManager()
 
     await expect(refreshToken()).rejects.toThrow(
@@ -144,5 +181,25 @@ describe('createCredentialManager > error responses', () => {
       'Screenly returned an unexpected error (400).'
     )
     expect(reportError).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('request', () => {
+  test('requests the access token endpoint with the expected url and auth header', async () => {
+    const fetchMock = fakeResponse(200, {
+      token: 'abc',
+      metadata: { instance_url: 'https://na1.salesforce.com' },
+    })
+    const { refreshToken } = makeManager()
+    await refreshToken()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.com/oauth/access_token/',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer app-auth',
+        }),
+      })
+    )
   })
 })

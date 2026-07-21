@@ -14,32 +14,48 @@ export class BackendServerError extends Error {}
 export const NO_CREDENTIALS_MESSAGE =
   'No access token or instance URL available.'
 
-async function fetchCredentials(): Promise<{
-  token: string | undefined
-  metadata?: Record<string, unknown>
-}> {
-  const response = await fetch(
-    `${screenly.settings.screenly_oauth_tokens_url}access_token/`,
-    {
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${screenly.settings.screenly_app_auth_token}`,
-      },
-    }
-  )
+type CredentialsResponse = {
+  token?: string
+  metadata?: { instance_url?: string }
+  error?: string
+}
 
-  if (response.status >= 500) {
+async function fetchCredentials(): Promise<{
+  token?: string
+  metadata?: { instance_url?: string }
+}> {
+  let response: Response
+  try {
+    response = await fetch(
+      `${screenly.settings.screenly_oauth_tokens_url}access_token/`,
+      {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${screenly.settings.screenly_app_auth_token}`,
+        },
+      }
+    )
+  } catch (err) {
+    throw new BackendServerError(
+      `Screenly's server could not be reached (${err instanceof Error ? err.message : String(err)}).`
+    )
+  }
+
+  if (response.status >= 500 || response.status === 429) {
     throw new BackendServerError(
       `Screenly's server had a problem (${response.status}).`
     )
   }
 
-  const body = await response.json().catch(() => undefined)
+  const body = (await response.json().catch(() => undefined)) as
+    | CredentialsResponse
+    | undefined
 
   if (!response.ok) {
     throw new Error(
-      body?.error ??
-        `Screenly returned an unexpected error (${response.status}).`
+      typeof body?.error === 'string'
+        ? body.error
+        : `Screenly returned an unexpected error (${response.status}).`
     )
   }
 
@@ -60,7 +76,7 @@ export function createCredentialManager(
   const refreshToken = async () => {
     try {
       const { token, metadata } = await fetchCredentials()
-      const nextInstanceUrl = (metadata?.instance_url as string) ?? instanceUrl
+      const nextInstanceUrl = metadata?.instance_url ?? instanceUrl
 
       if (!token || !nextInstanceUrl) {
         throw new Error(NO_CREDENTIALS_MESSAGE)
