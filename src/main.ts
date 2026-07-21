@@ -12,19 +12,21 @@ import { inferSalesforceContentType } from './content'
 import { createCredentialManager } from './credentials'
 import type { RefreshToken, RuntimeState } from './credentials'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
+import { shouldSkipBackendError, shouldSignalReady } from './render-decisions'
+import type { RenderOutcome } from './render-decisions'
 import type { SalesforceContentType } from './types'
 
 setupSentry('salesforce', {
   salesforce: { content_id: screenly.settings.content_id },
 })
 
-async function loadAndRenderContent(
+async function renderContent(
   contentType: SalesforceContentType,
   instanceUrl: string,
   accessToken: string,
   contentId: string,
   showLabels: boolean
-): Promise<void> {
+): Promise<RenderOutcome> {
   if (contentType === 'dashboard') {
     const results = await getDashboardResults(
       instanceUrl,
@@ -32,16 +34,77 @@ async function loadAndRenderContent(
       contentId
     )
     renderDashboard(results, showLabels)
-    return
+  } else {
+    const results = await getReportResults(instanceUrl, accessToken, contentId)
+    renderReport(contentId, results, showLabels)
   }
 
-  const results = await getReportResults(instanceUrl, accessToken, contentId)
-  renderReport(contentId, results, showLabels)
+  showScreen('dashboard-screen')
+  return 'shown'
 }
 
 function handleError(message: string, displayErrors: boolean): void {
   if (displayErrors) throw new Error(message)
   showError(message)
+}
+
+async function retryAfterRefresh(
+  contentId: string,
+  contentType: SalesforceContentType,
+  getRuntimeState: () => RuntimeState,
+  refreshToken: RefreshToken,
+  displayErrors: boolean,
+  showLabels: boolean
+): Promise<RenderOutcome> {
+  try {
+    await refreshToken()
+  } catch (retryErr) {
+    if (shouldSkipBackendError(retryErr, displayErrors)) {
+      return 'skipped'
+    }
+
+    handleError(
+      retryErr instanceof Error
+        ? retryErr.message
+        : 'Session expired. Please re-authenticate.',
+      displayErrors
+    )
+    return 'shown'
+  }
+
+  const { accessToken, instanceUrl } = getRuntimeState()
+
+  if (!accessToken) {
+    handleError('No access token.', displayErrors)
+    return 'shown'
+  }
+  if (!instanceUrl) {
+    handleError('No instance URL available.', displayErrors)
+    return 'shown'
+  }
+
+  try {
+    return await renderContent(
+      contentType,
+      instanceUrl,
+      accessToken,
+      contentId,
+      showLabels
+    )
+  } catch (retryErr) {
+    if (!(retryErr instanceof AuthError)) {
+      reportError(retryErr, {
+        source: 'salesforce-content',
+        contentId,
+        contentType,
+      })
+    }
+    handleError(
+      retryErr instanceof Error ? retryErr.message : 'Failed to load content.',
+      displayErrors
+    )
+    return 'shown'
+  }
 }
 
 async function fetchAndRender(
@@ -51,28 +114,26 @@ async function fetchAndRender(
   refreshToken: RefreshToken,
   displayErrors: boolean,
   showLabels: boolean
-): Promise<void> {
-  let { accessToken, instanceUrl } = getRuntimeState()
-  const { credentialError } = getRuntimeState()
+): Promise<RenderOutcome> {
+  const { accessToken, instanceUrl, credentialError } = getRuntimeState()
 
   if (!accessToken || !instanceUrl) {
-    handleError(
-      credentialError?.message ?? 'No access token or instance URL available.',
-      displayErrors
-    )
-    return
+    if (shouldSkipBackendError(credentialError, displayErrors)) {
+      return 'skipped'
+    }
+
+    handleError(credentialError!.message, displayErrors)
+    return 'shown'
   }
 
   try {
-    await loadAndRenderContent(
+    return await renderContent(
       contentType,
       instanceUrl,
       accessToken,
       contentId,
       showLabels
     )
-    showScreen('dashboard-screen')
-    return
   } catch (err) {
     if (!(err instanceof AuthError)) {
       reportError(err, { source: 'salesforce-content', contentId, contentType })
@@ -80,38 +141,38 @@ async function fetchAndRender(
         err instanceof Error ? err.message : 'Failed to load content.',
         displayErrors
       )
-      return
+      return 'shown'
     }
   }
 
-  try {
-    await refreshToken()
-    ;({ accessToken, instanceUrl } = getRuntimeState())
+  return retryAfterRefresh(
+    contentId,
+    contentType,
+    getRuntimeState,
+    refreshToken,
+    displayErrors,
+    showLabels
+  )
+}
 
-    if (!accessToken) {
-      handleError('No access token.', displayErrors)
-      return
-    }
-    if (!instanceUrl) {
-      handleError('No instance URL available.', displayErrors)
-      return
-    }
-
-    await loadAndRenderContent(
-      contentType,
-      instanceUrl,
-      accessToken,
-      contentId,
-      showLabels
-    )
-    showScreen('dashboard-screen')
-  } catch (retryErr) {
-    handleError(
-      retryErr instanceof Error
-        ? retryErr.message
-        : 'Session expired. Please re-authenticate.',
-      displayErrors
-    )
+function createRenderer(
+  contentId: string,
+  contentType: SalesforceContentType,
+  getRuntimeState: () => RuntimeState,
+  refreshToken: RefreshToken,
+  displayErrors: boolean,
+  showLabels: boolean
+): { render: () => Promise<RenderOutcome> } {
+  return {
+    render: () =>
+      fetchAndRender(
+        contentId,
+        contentType,
+        getRuntimeState,
+        refreshToken,
+        displayErrors,
+        showLabels
+      ),
   }
 }
 
@@ -153,18 +214,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initTokenRefreshLoop(refreshToken)
 
-  const run = () =>
-    fetchAndRender(
-      contentId,
-      contentType,
-      getRuntimeState,
-      refreshToken,
-      displayErrors,
-      showLabels
-    )
+  const { render } = createRenderer(
+    contentId,
+    contentType,
+    getRuntimeState,
+    refreshToken,
+    displayErrors,
+    showLabels
+  )
+
+  let hasRenderedOnce = false
+  const run = async () => {
+    const outcome = await render()
+    if (shouldSignalReady(outcome, hasRenderedOnce)) signalReady()
+    hasRenderedOnce = hasRenderedOnce || outcome === 'shown'
+  }
 
   await run()
-  signalReady()
 
   setInterval(async () => {
     try {
