@@ -20,13 +20,9 @@ type CredentialsResponse = {
   error?: string
 }
 
-async function fetchCredentials(): Promise<{
-  token?: string
-  metadata?: { instance_url?: string }
-}> {
-  let response: Response
+async function requestCredentials(): Promise<Response> {
   try {
-    response = await fetch(
+    return await fetch(
       `${screenly.settings.screenly_oauth_tokens_url}access_token/`,
       {
         headers: {
@@ -40,7 +36,12 @@ async function fetchCredentials(): Promise<{
       `Screenly's server could not be reached (${err instanceof Error ? err.message : String(err)}).`
     )
   }
+}
 
+async function parseCredentialsResponse(response: Response): Promise<{
+  token?: string
+  metadata?: { instance_url?: string }
+}> {
   if (response.status >= 500 || response.status === 429) {
     throw new BackendServerError(
       `Screenly's server had a problem (${response.status}).`
@@ -63,46 +64,73 @@ async function fetchCredentials(): Promise<{
   return { token, metadata }
 }
 
+async function fetchCredentials(): Promise<{
+  token?: string
+  metadata?: { instance_url?: string }
+}> {
+  const response = await requestCredentials()
+  return parseCredentialsResponse(response)
+}
+
+type CredentialManagerState = RuntimeState & {
+  hasReportedCredentialError: boolean
+}
+
 export function createCredentialManager(
   contentId: string,
   contentType: SalesforceContentType
 ): { refreshToken: RefreshToken; getRuntimeState: () => RuntimeState } {
-  let accessToken: string | null =
-    getSettingWithDefault('access_token', '') || null
-  let instanceUrl: string | null = null
-  let credentialError: Error | null = null
-  let hasReportedCredentialError = false
+  const state: CredentialManagerState = {
+    accessToken: getSettingWithDefault('access_token', '') || null,
+    instanceUrl: null,
+    credentialError: null,
+    hasReportedCredentialError: false,
+  }
+
+  function applySuccessfulRefresh(token: string, instanceUrl: string): void {
+    state.accessToken = token
+    state.instanceUrl = instanceUrl
+    state.credentialError = null
+    state.hasReportedCredentialError = false
+  }
+
+  function applyFailedRefresh(err: unknown): Error {
+    const error = err instanceof Error ? err : new Error(String(err))
+
+    if (!state.hasReportedCredentialError) {
+      reportError(error, {
+        source: 'salesforce-credentials',
+        contentId,
+        contentType,
+      })
+      state.hasReportedCredentialError = true
+    }
+
+    state.credentialError = error
+    return error
+  }
 
   const refreshToken = async () => {
     try {
       const { token, metadata } = await fetchCredentials()
-      const nextInstanceUrl = metadata?.instance_url ?? instanceUrl
+      const nextInstanceUrl = metadata?.instance_url ?? state.instanceUrl
 
       if (!token || !nextInstanceUrl) {
         throw new Error(NO_CREDENTIALS_MESSAGE)
       }
 
-      accessToken = token
-      instanceUrl = nextInstanceUrl
-      credentialError = null
-      hasReportedCredentialError = false
+      applySuccessfulRefresh(token, nextInstanceUrl)
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err))
-      if (!hasReportedCredentialError) {
-        reportError(error, {
-          source: 'salesforce-credentials',
-          contentId,
-          contentType,
-        })
-        hasReportedCredentialError = true
-      }
-      credentialError = error
-      throw error
+      throw applyFailedRefresh(err)
     }
   }
 
   return {
     refreshToken,
-    getRuntimeState: () => ({ accessToken, instanceUrl, credentialError }),
+    getRuntimeState: () => ({
+      accessToken: state.accessToken,
+      instanceUrl: state.instanceUrl,
+      credentialError: state.credentialError,
+    }),
   }
 }

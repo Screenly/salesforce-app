@@ -20,6 +20,23 @@ setupSentry('salesforce', {
   salesforce: { content_id: screenly.settings.content_id },
 })
 
+type RenderContext = {
+  contentId: string
+  contentType: SalesforceContentType
+  getRuntimeState: () => RuntimeState
+  refreshToken: RefreshToken
+  displayErrors: boolean
+  showLabels: boolean
+}
+
+type CredentialsResult =
+  | { ok: true; accessToken: string; instanceUrl: string }
+  | { ok: false; outcome: RenderOutcome }
+
+type RenderAttempt =
+  | { ok: true; outcome: RenderOutcome }
+  | { ok: false; error: unknown }
+
 async function renderContent(
   contentType: SalesforceContentType,
   instanceUrl: string,
@@ -48,132 +65,137 @@ function handleError(message: string, displayErrors: boolean): void {
   showError(message)
 }
 
-async function retryAfterRefresh(
-  contentId: string,
-  contentType: SalesforceContentType,
-  getRuntimeState: () => RuntimeState,
-  refreshToken: RefreshToken,
-  displayErrors: boolean,
-  showLabels: boolean
-): Promise<RenderOutcome> {
-  try {
-    await refreshToken()
-  } catch (retryErr) {
-    if (shouldSkipBackendError(retryErr, displayErrors)) {
-      return 'skipped'
-    }
+function toErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback
+}
 
-    handleError(
-      retryErr instanceof Error
-        ? retryErr.message
-        : 'Session expired. Please re-authenticate.',
-      displayErrors
+function reportContentRenderError(ctx: RenderContext, err: unknown): void {
+  reportError(err, {
+    source: 'salesforce-content',
+    contentId: ctx.contentId,
+    contentType: ctx.contentType,
+  })
+}
+
+async function attemptRenderContent(
+  ctx: RenderContext,
+  accessToken: string,
+  instanceUrl: string
+): Promise<RenderAttempt> {
+  try {
+    const outcome = await renderContent(
+      ctx.contentType,
+      instanceUrl,
+      accessToken,
+      ctx.contentId,
+      ctx.showLabels
     )
-    return 'shown'
+    return { ok: true, outcome }
+  } catch (err) {
+    return { ok: false, error: err }
+  }
+}
+
+function requireCredentials(ctx: RenderContext): CredentialsResult {
+  const { accessToken, instanceUrl, credentialError } = ctx.getRuntimeState()
+
+  if (accessToken && instanceUrl) {
+    return { ok: true, accessToken, instanceUrl }
   }
 
-  const { accessToken, instanceUrl } = getRuntimeState()
+  if (shouldSkipBackendError(credentialError, ctx.displayErrors)) {
+    return { ok: false, outcome: 'skipped' }
+  }
+
+  handleError(credentialError!.message, ctx.displayErrors)
+  return { ok: false, outcome: 'shown' }
+}
+
+function requireRefreshedCredentials(ctx: RenderContext): CredentialsResult {
+  const { accessToken, instanceUrl } = ctx.getRuntimeState()
 
   if (!accessToken) {
-    handleError('No access token.', displayErrors)
-    return 'shown'
+    handleError('No access token.', ctx.displayErrors)
+    return { ok: false, outcome: 'shown' }
   }
   if (!instanceUrl) {
-    handleError('No instance URL available.', displayErrors)
-    return 'shown'
+    handleError('No instance URL available.', ctx.displayErrors)
+    return { ok: false, outcome: 'shown' }
   }
 
-  try {
-    return await renderContent(
-      contentType,
-      instanceUrl,
-      accessToken,
-      contentId,
-      showLabels
-    )
-  } catch (retryErr) {
-    if (!(retryErr instanceof AuthError)) {
-      reportError(retryErr, {
-        source: 'salesforce-content',
-        contentId,
-        contentType,
-      })
-    }
-    handleError(
-      retryErr instanceof Error ? retryErr.message : 'Failed to load content.',
-      displayErrors
-    )
-    return 'shown'
-  }
+  return { ok: true, accessToken, instanceUrl }
 }
 
-async function fetchAndRender(
-  contentId: string,
-  contentType: SalesforceContentType,
-  getRuntimeState: () => RuntimeState,
-  refreshToken: RefreshToken,
-  displayErrors: boolean,
-  showLabels: boolean
-): Promise<RenderOutcome> {
-  const { accessToken, instanceUrl, credentialError } = getRuntimeState()
-
-  if (!accessToken || !instanceUrl) {
-    if (shouldSkipBackendError(credentialError, displayErrors)) {
+async function refreshCredentials(
+  ctx: RenderContext
+): Promise<RenderOutcome | null> {
+  try {
+    await ctx.refreshToken()
+    return null
+  } catch (err) {
+    if (shouldSkipBackendError(err, ctx.displayErrors)) {
       return 'skipped'
     }
 
-    handleError(credentialError!.message, displayErrors)
+    handleError(
+      toErrorMessage(err, 'Session expired. Please re-authenticate.'),
+      ctx.displayErrors
+    )
+    return 'shown'
+  }
+}
+
+async function retryAfterRefresh(ctx: RenderContext): Promise<RenderOutcome> {
+  const refreshOutcome = await refreshCredentials(ctx)
+  if (refreshOutcome) return refreshOutcome
+
+  const credentials = requireRefreshedCredentials(ctx)
+  if (!credentials.ok) return credentials.outcome
+
+  const attempt = await attemptRenderContent(
+    ctx,
+    credentials.accessToken,
+    credentials.instanceUrl
+  )
+  if (attempt.ok) return attempt.outcome
+
+  if (!(attempt.error instanceof AuthError)) {
+    reportContentRenderError(ctx, attempt.error)
+  }
+  handleError(
+    toErrorMessage(attempt.error, 'Failed to load content.'),
+    ctx.displayErrors
+  )
+  return 'shown'
+}
+
+async function fetchAndRender(ctx: RenderContext): Promise<RenderOutcome> {
+  const credentials = requireCredentials(ctx)
+  if (!credentials.ok) return credentials.outcome
+
+  const attempt = await attemptRenderContent(
+    ctx,
+    credentials.accessToken,
+    credentials.instanceUrl
+  )
+  if (attempt.ok) return attempt.outcome
+
+  if (!(attempt.error instanceof AuthError)) {
+    reportContentRenderError(ctx, attempt.error)
+    handleError(
+      toErrorMessage(attempt.error, 'Failed to load content.'),
+      ctx.displayErrors
+    )
     return 'shown'
   }
 
-  try {
-    return await renderContent(
-      contentType,
-      instanceUrl,
-      accessToken,
-      contentId,
-      showLabels
-    )
-  } catch (err) {
-    if (!(err instanceof AuthError)) {
-      reportError(err, { source: 'salesforce-content', contentId, contentType })
-      handleError(
-        err instanceof Error ? err.message : 'Failed to load content.',
-        displayErrors
-      )
-      return 'shown'
-    }
-  }
-
-  return retryAfterRefresh(
-    contentId,
-    contentType,
-    getRuntimeState,
-    refreshToken,
-    displayErrors,
-    showLabels
-  )
+  return retryAfterRefresh(ctx)
 }
 
-function createRenderer(
-  contentId: string,
-  contentType: SalesforceContentType,
-  getRuntimeState: () => RuntimeState,
-  refreshToken: RefreshToken,
-  displayErrors: boolean,
-  showLabels: boolean
-): { render: () => Promise<RenderOutcome> } {
-  return {
-    render: () =>
-      fetchAndRender(
-        contentId,
-        contentType,
-        getRuntimeState,
-        refreshToken,
-        displayErrors,
-        showLabels
-      ),
-  }
+function createRenderer(ctx: RenderContext): {
+  render: () => Promise<RenderOutcome>
+} {
+  return { render: () => fetchAndRender(ctx) }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -214,14 +236,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initTokenRefreshLoop(refreshToken)
 
-  const { render } = createRenderer(
+  const { render } = createRenderer({
     contentId,
     contentType,
     getRuntimeState,
     refreshToken,
     displayErrors,
-    showLabels
-  )
+    showLabels,
+  })
 
   let hasRenderedOnce = false
   const run = async () => {
