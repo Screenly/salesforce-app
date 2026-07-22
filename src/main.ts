@@ -192,12 +192,6 @@ async function fetchAndRender(ctx: RenderContext): Promise<RenderOutcome> {
   return retryAfterRefresh(ctx)
 }
 
-function createRenderer(ctx: RenderContext): {
-  render: () => Promise<RenderOutcome>
-} {
-  return { render: () => fetchAndRender(ctx) }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
   setupErrorHandling()
 
@@ -236,18 +230,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initTokenRefreshLoop(refreshToken)
 
-  const { render } = createRenderer({
+  const ctx: RenderContext = {
     contentId,
     contentType,
     getRuntimeState,
     refreshToken,
     displayErrors,
     showLabels,
-  })
+  }
 
   let hasRenderedOnce = false
   const run = async () => {
-    const outcome = await render()
+    const outcome = await fetchAndRender(ctx)
     if (shouldSignalReady(outcome, hasRenderedOnce)) signalReady()
     hasRenderedOnce = hasRenderedOnce || outcome === 'shown'
   }

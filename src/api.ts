@@ -14,7 +14,7 @@ async function performApiRequest(
   instanceUrl: string,
   accessToken: string,
   path: string,
-  method: string = 'GET'
+  method: 'GET' | 'PUT' = 'GET'
 ): Promise<Response> {
   return fetch(apiUrl(instanceUrl, path), {
     method,
