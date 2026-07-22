@@ -77,6 +77,11 @@ function reportContentRenderError(ctx: RenderContext, err: unknown): void {
   })
 }
 
+function showContentFailure(ctx: RenderContext, err: unknown): RenderOutcome {
+  handleError(toErrorMessage(err, 'Failed to load content.'), ctx.displayErrors)
+  return 'shown'
+}
+
 async function attemptRenderContent(
   ctx: RenderContext,
   accessToken: string,
@@ -162,11 +167,7 @@ async function retryAfterRefresh(ctx: RenderContext): Promise<RenderOutcome> {
   if (!(attempt.error instanceof AuthError)) {
     reportContentRenderError(ctx, attempt.error)
   }
-  handleError(
-    toErrorMessage(attempt.error, 'Failed to load content.'),
-    ctx.displayErrors
-  )
-  return 'shown'
+  return showContentFailure(ctx, attempt.error)
 }
 
 async function fetchAndRender(ctx: RenderContext): Promise<RenderOutcome> {
@@ -182,11 +183,7 @@ async function fetchAndRender(ctx: RenderContext): Promise<RenderOutcome> {
 
   if (!(attempt.error instanceof AuthError)) {
     reportContentRenderError(ctx, attempt.error)
-    handleError(
-      toErrorMessage(attempt.error, 'Failed to load content.'),
-      ctx.displayErrors
-    )
-    return 'shown'
+    return showContentFailure(ctx, attempt.error)
   }
 
   return retryAfterRefresh(ctx)
