@@ -1,6 +1,7 @@
 import type {
   DashboardResults,
   DashboardMetadataComponent,
+  DashboardLayoutComponent,
   ComponentDataItem,
   ReportResult,
 } from '../types'
@@ -65,14 +66,21 @@ function getDashboardElements(): {
   }
 }
 
-export function renderDashboard(
-  results: DashboardResults,
-  showLabels: boolean = false
+function countUsedColumns(
+  layout: DashboardResults['dashboardMetadata']['layout'],
+  layoutComponents: DashboardLayoutComponent[]
+): number {
+  if (layoutComponents.length > 0) {
+    return Math.max(...layoutComponents.map((c) => c.column + c.colspan))
+  }
+  return layout?.numColumns ?? 12
+}
+
+function initializeDashboardGrid(
+  chartsGrid: HTMLElement,
+  dashboardTitle: HTMLElement | null,
+  results: DashboardResults
 ): void {
-  const { dashboardTitle, chartsGrid } = getDashboardElements()
-
-  if (!chartsGrid) return
-
   if (dashboardTitle) {
     dashboardTitle.textContent = results.dashboardMetadata?.name ?? 'Dashboard'
   }
@@ -80,17 +88,18 @@ export function renderDashboard(
   chartsGrid.innerHTML = ''
 
   const layout = results.dashboardMetadata.layout
-  const rowHeight = layout?.rowHeight ?? 36
   const layoutComponents = layout?.components ?? []
 
-  const usedColumns =
-    layoutComponents.length > 0
-      ? Math.max(...layoutComponents.map((c) => c.column + c.colspan))
-      : (layout?.numColumns ?? 12)
+  chartsGrid.style.gridTemplateColumns = `repeat(${countUsedColumns(layout, layoutComponents)}, 1fr)`
+  chartsGrid.style.gridAutoRows = `${layout?.rowHeight ?? 36}px`
+}
 
-  chartsGrid.style.gridTemplateColumns = `repeat(${usedColumns}, 1fr)`
-  chartsGrid.style.gridAutoRows = `${rowHeight}px`
-
+function renderDashboardComponents(
+  chartsGrid: HTMLElement,
+  results: DashboardResults,
+  showLabels: boolean
+): void {
+  const layoutComponents = results.dashboardMetadata.layout?.components ?? []
   const metaComponents = results.dashboardMetadata.components
   const metaMap = new Map(metaComponents.map((c) => [c.id, c]))
 
@@ -115,6 +124,18 @@ export function renderDashboard(
     renderComponent(contentContainer, meta, item, showLabels)
     chartsGrid.appendChild(card)
   }
+}
+
+export function renderDashboard(
+  results: DashboardResults,
+  showLabels: boolean = false
+): void {
+  const { dashboardTitle, chartsGrid } = getDashboardElements()
+
+  if (!chartsGrid) return
+
+  initializeDashboardGrid(chartsGrid, dashboardTitle, results)
+  renderDashboardComponents(chartsGrid, results, showLabels)
 }
 
 export function renderReport(

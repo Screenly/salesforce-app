@@ -2,10 +2,20 @@ import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 
 mock.module('@screenly/edge-apps', () => ({
   getSettingWithDefault: (_key: string, defaultValue: unknown) => defaultValue,
+  getCorsProxyUrl: () => 'https://cors-proxy.example.com',
 }))
 
 const reportError = mock(() => {})
 mock.module('@screenly/edge-apps/utils', () => ({ reportError }))
+
+const readCachedCredentials = mock(
+  () => null as { accessToken: string; instanceUrl: string } | null
+)
+const writeCachedCredentials = mock(() => {})
+mock.module('./cache', () => ({
+  readCachedCredentials,
+  writeCachedCredentials,
+}))
 
 const { createCredentialManager, BackendServerError, NO_CREDENTIALS_MESSAGE } =
   await import('./credentials')
@@ -13,8 +23,8 @@ const { createCredentialManager, BackendServerError, NO_CREDENTIALS_MESSAGE } =
 const CONTENT_ID = '01Zg5000002iDwTEAU'
 const CONTENT_TYPE = 'dashboard'
 
-function makeManager() {
-  return createCredentialManager(CONTENT_ID, CONTENT_TYPE)
+function makeManager(displayErrors = false) {
+  return createCredentialManager(CONTENT_ID, CONTENT_TYPE, displayErrors)
 }
 
 function stubFetch(impl: () => Promise<unknown>) {
@@ -54,6 +64,9 @@ beforeEach(() => {
     },
   }
   reportError.mockClear()
+  readCachedCredentials.mockClear()
+  readCachedCredentials.mockReturnValue(null)
+  writeCachedCredentials.mockClear()
 })
 
 afterEach(() => {
@@ -201,5 +214,77 @@ describe('request', () => {
         }),
       })
     )
+  })
+})
+
+describe('credential caching', () => {
+  test('writes the fresh credentials to cache on a successful refresh', async () => {
+    succeed()
+    const { refreshToken } = makeManager()
+    await refreshToken()
+
+    expect(writeCachedCredentials).toHaveBeenCalledWith({
+      accessToken: 'abc',
+      instanceUrl: 'https://na1.salesforce.com',
+    })
+  })
+
+  test('repopulates state from cache on a skippable backend outage', async () => {
+    readCachedCredentials.mockReturnValue({
+      accessToken: 'cached-token',
+      instanceUrl: 'https://cached.salesforce.com',
+    })
+    failWithNetworkError('network down')
+    const { refreshToken, getRuntimeState } = makeManager(false)
+
+    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
+
+    expect(getRuntimeState().accessToken).toBe('cached-token')
+    expect(getRuntimeState().instanceUrl).toBe('https://cached.salesforce.com')
+  })
+
+  test('does not consult the cache when display_errors is on', async () => {
+    readCachedCredentials.mockReturnValue({
+      accessToken: 'cached-token',
+      instanceUrl: 'https://cached.salesforce.com',
+    })
+    failWithNetworkError('network down')
+    const { refreshToken, getRuntimeState } = makeManager(true)
+
+    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
+
+    expect(readCachedCredentials).not.toHaveBeenCalled()
+    expect(getRuntimeState().accessToken).toBeNull()
+    expect(getRuntimeState().instanceUrl).toBeNull()
+  })
+
+  test('does not consult the cache for a non-backend error', async () => {
+    readCachedCredentials.mockReturnValue({
+      accessToken: 'cached-token',
+      instanceUrl: 'https://cached.salesforce.com',
+    })
+    fakeResponse(200, { token: '', metadata: undefined })
+    const { refreshToken, getRuntimeState } = makeManager(false)
+
+    await expect(refreshToken()).rejects.toThrow(NO_CREDENTIALS_MESSAGE)
+
+    expect(readCachedCredentials).not.toHaveBeenCalled()
+    expect(getRuntimeState().accessToken).toBeNull()
+    expect(getRuntimeState().instanceUrl).toBeNull()
+  })
+
+  test('does not re-read the cache once state already has an instance url', async () => {
+    readCachedCredentials.mockReturnValue({
+      accessToken: 'cached-token',
+      instanceUrl: 'https://cached.salesforce.com',
+    })
+    failWithNetworkError('network down')
+    const { refreshToken } = makeManager(false)
+
+    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
+    expect(readCachedCredentials).toHaveBeenCalledTimes(1)
+
+    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
+    expect(readCachedCredentials).toHaveBeenCalledTimes(1)
   })
 })
