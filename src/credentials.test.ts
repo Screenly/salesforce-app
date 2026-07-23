@@ -2,6 +2,7 @@ import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
 
 mock.module('@screenly/edge-apps', () => ({
   getSettingWithDefault: (_key: string, defaultValue: unknown) => defaultValue,
+  getCorsProxyUrl: () => 'https://cors-proxy.example.com',
 }))
 
 const reportError = mock(() => {})

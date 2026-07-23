@@ -2,12 +2,13 @@ import { describe, test, expect, mock } from 'bun:test'
 
 mock.module('@screenly/edge-apps', () => ({
   getSettingWithDefault: (_key: string, defaultValue: unknown) => defaultValue,
+  getCorsProxyUrl: () => 'https://cors-proxy.example.com',
 }))
 mock.module('@screenly/edge-apps/utils', () => ({ reportError: () => {} }))
 
 const { BackendServerError } = await import('./credentials')
 const { shouldSkipBackendError, shouldSignalReady } =
-  await import('./render-decisions')
+  await import('./render-orchestrator')
 
 describe('shouldSkipBackendError', () => {
   test('skips a backend outage when display_errors is off', () => {
