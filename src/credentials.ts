@@ -1,5 +1,7 @@
 import { getSettingWithDefault } from '@screenly/edge-apps'
 import { reportError } from '@screenly/edge-apps/utils'
+import { readCachedCredentials, writeCachedCredentials } from './cache'
+import { BackendServerError, shouldSkipBackendError } from './errors'
 import type { SalesforceContentType } from './types'
 
 export type RefreshToken = () => Promise<void>
@@ -9,7 +11,7 @@ export type RuntimeState = {
   credentialError: Error | null
 }
 
-export class BackendServerError extends Error {}
+export { BackendServerError } from './errors'
 
 export const NO_CREDENTIALS_MESSAGE =
   'No access token or instance URL available.'
@@ -78,7 +80,8 @@ type CredentialManagerState = RuntimeState & {
 
 export function createCredentialManager(
   contentId: string,
-  contentType: SalesforceContentType
+  contentType: SalesforceContentType,
+  displayErrors: boolean
 ): { refreshToken: RefreshToken; getRuntimeState: () => RuntimeState } {
   const state: CredentialManagerState = {
     accessToken: getSettingWithDefault('access_token', '') || null,
@@ -92,6 +95,7 @@ export function createCredentialManager(
     state.instanceUrl = instanceUrl
     state.credentialError = null
     state.hasReportedCredentialError = false
+    writeCachedCredentials({ accessToken: token, instanceUrl })
   }
 
   function applyFailedRefresh(err: unknown): Error {
@@ -107,6 +111,20 @@ export function createCredentialManager(
     }
 
     state.credentialError = error
+
+    // Cache reads are gated on `!state.instanceUrl` so a manager that has
+    // already recovered credentials (live or cached) never overwrites them
+    // with a possibly-stale cache entry on a later failed refresh.
+    if (state.instanceUrl || !shouldSkipBackendError(error, displayErrors)) {
+      return error
+    }
+
+    const cached = readCachedCredentials()
+    if (cached) {
+      state.accessToken = cached.accessToken
+      state.instanceUrl = cached.instanceUrl
+    }
+
     return error
   }
 

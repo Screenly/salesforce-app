@@ -45,7 +45,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const { refreshToken, getRuntimeState } = createCredentialManager(
     contentId,
-    contentType
+    contentType,
+    displayErrors
   )
 
   try {
