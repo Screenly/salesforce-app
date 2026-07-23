@@ -44,15 +44,21 @@ async function apiFetch<T>(
   return res.json() as Promise<T>
 }
 
+export async function triggerDashboardRefresh(
+  instanceUrl: string,
+  accessToken: string,
+  contentId: string
+): Promise<void> {
+  const path = `/analytics/dashboards/${contentId}`
+  await performApiRequest(instanceUrl, accessToken, path, 'PUT').catch(() => {})
+}
+
 export async function getDashboardResults(
   instanceUrl: string,
   accessToken: string,
   contentId: string
 ): Promise<DashboardResults> {
   const path = `/analytics/dashboards/${contentId}`
-
-  await performApiRequest(instanceUrl, accessToken, path, 'PUT').catch(() => {})
-
   return apiFetch<DashboardResults>(instanceUrl, accessToken, path)
 }
 

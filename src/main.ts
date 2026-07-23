@@ -7,14 +7,23 @@ import {
   signalReady,
 } from '@screenly/edge-apps'
 import { reportError, setupSentry } from '@screenly/edge-apps/utils'
-import { getDashboardResults, getReportResults, AuthError } from './api'
+import {
+  getDashboardResults,
+  getReportResults,
+  triggerDashboardRefresh,
+  AuthError,
+} from './api'
 import { inferSalesforceContentType } from './content'
 import { createCredentialManager } from './credentials'
 import type { RefreshToken, RuntimeState } from './credentials'
 import { renderDashboard, renderReport, showScreen, showError } from './render'
 import { shouldSkipBackendError, shouldSignalReady } from './render-decisions'
 import type { RenderOutcome } from './render-decisions'
-import type { SalesforceContentType } from './types'
+import type {
+  DashboardResults,
+  ReportResult,
+  SalesforceContentType,
+} from './types'
 
 setupSentry('salesforce', {
   salesforce: { content_id: screenly.settings.content_id },
@@ -37,27 +46,41 @@ type RenderAttempt =
   | { ok: true; outcome: RenderOutcome }
   | { ok: false; error: unknown }
 
-async function renderContent(
+type ContentResults =
+  | { contentType: 'dashboard'; results: DashboardResults }
+  | { contentType: 'report'; results: ReportResult }
+
+async function fetchContentResults(
   contentType: SalesforceContentType,
   instanceUrl: string,
   accessToken: string,
-  contentId: string,
-  showLabels: boolean
-): Promise<RenderOutcome> {
+  contentId: string
+): Promise<ContentResults> {
   if (contentType === 'dashboard') {
+    await triggerDashboardRefresh(instanceUrl, accessToken, contentId)
     const results = await getDashboardResults(
       instanceUrl,
       accessToken,
       contentId
     )
-    renderDashboard(results, showLabels)
-  } else {
-    const results = await getReportResults(instanceUrl, accessToken, contentId)
-    renderReport(contentId, results, showLabels)
+    return { contentType, results }
   }
 
-  showScreen('dashboard-screen')
-  return 'shown'
+  const results = await getReportResults(instanceUrl, accessToken, contentId)
+  return { contentType, results }
+}
+
+function renderContentResults(
+  contentId: string,
+  content: ContentResults,
+  showLabels: boolean
+): void {
+  if (content.contentType === 'dashboard') {
+    renderDashboard(content.results, showLabels)
+    return
+  }
+
+  renderReport(contentId, content.results, showLabels)
 }
 
 function handleError(message: string, displayErrors: boolean): void {
@@ -88,14 +111,14 @@ async function attemptRenderContent(
   instanceUrl: string
 ): Promise<RenderAttempt> {
   try {
-    const outcome = await renderContent(
+    const content = await fetchContentResults(
       ctx.contentType,
       instanceUrl,
       accessToken,
-      ctx.contentId,
-      ctx.showLabels
+      ctx.contentId
     )
-    return { ok: true, outcome }
+    renderContentResults(ctx.contentId, content, ctx.showLabels)
+    return { ok: true, outcome: 'shown' }
   } catch (err) {
     return { ok: false, error: err }
   }
@@ -162,7 +185,10 @@ async function retryAfterRefresh(ctx: RenderContext): Promise<RenderOutcome> {
     credentials.accessToken,
     credentials.instanceUrl
   )
-  if (attempt.ok) return attempt.outcome
+  if (attempt.ok) {
+    showScreen('dashboard-screen')
+    return attempt.outcome
+  }
 
   if (!(attempt.error instanceof AuthError)) {
     reportContentRenderError(ctx, attempt.error)
@@ -170,7 +196,7 @@ async function retryAfterRefresh(ctx: RenderContext): Promise<RenderOutcome> {
   return showContentFailure(ctx, attempt.error)
 }
 
-async function fetchAndRender(ctx: RenderContext): Promise<RenderOutcome> {
+async function renderOnce(ctx: RenderContext): Promise<RenderOutcome> {
   const credentials = requireCredentials(ctx)
   if (!credentials.ok) return credentials.outcome
 
@@ -179,7 +205,10 @@ async function fetchAndRender(ctx: RenderContext): Promise<RenderOutcome> {
     credentials.accessToken,
     credentials.instanceUrl
   )
-  if (attempt.ok) return attempt.outcome
+  if (attempt.ok) {
+    showScreen('dashboard-screen')
+    return attempt.outcome
+  }
 
   if (!(attempt.error instanceof AuthError)) {
     reportContentRenderError(ctx, attempt.error)
@@ -238,7 +267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let hasRenderedOnce = false
   const run = async () => {
-    const outcome = await fetchAndRender(ctx)
+    const outcome = await renderOnce(ctx)
     if (shouldSignalReady(outcome, hasRenderedOnce)) signalReady()
     hasRenderedOnce = hasRenderedOnce || outcome === 'shown'
   }
