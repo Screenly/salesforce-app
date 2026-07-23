@@ -1,4 +1,5 @@
 import { getCorsProxyUrl } from '@screenly/edge-apps'
+import { BackendServerError } from './errors'
 import type { DashboardResults, ReportResult } from './types'
 
 const API_VERSION = 'v62.0'
@@ -16,13 +17,19 @@ async function performApiRequest(
   path: string,
   method: 'GET' | 'PUT' = 'GET'
 ): Promise<Response> {
-  return fetch(apiUrl(instanceUrl, path), {
-    method,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-  })
+  try {
+    return await fetch(apiUrl(instanceUrl, path), {
+      method,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    })
+  } catch (err) {
+    throw new BackendServerError(
+      `Salesforce could not be reached (${err instanceof Error ? err.message : String(err)}).`
+    )
+  }
 }
 
 function classifyApiResponse(res: Response, path: string): void {
@@ -30,6 +37,10 @@ function classifyApiResponse(res: Response, path: string): void {
   if (res.status === 404)
     throw new Error(
       'The selected content could not be found. Please verify that it still exists in Salesforce.'
+    )
+  if (res.status >= 500 || res.status === 429)
+    throw new BackendServerError(
+      `Salesforce's API had a problem (${res.status}).`
     )
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
 }
