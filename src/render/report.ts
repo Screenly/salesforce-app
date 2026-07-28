@@ -8,15 +8,18 @@ export function createChartCard(titleText: string): {
   contentContainer: HTMLDivElement
 } {
   const card = document.createElement('div')
-  card.className = 'chart-card'
+  card.className =
+    'chart-card bg-[#1a1a1a] border border-[#2a2a2a] rounded-3xl py-7 px-8 flex flex-col gap-4 min-h-0 overflow-hidden'
 
   const title = document.createElement('h3')
-  title.className = 'chart-title'
+  title.className =
+    'chart-title text-xs font-semibold tracking-[0.08em] uppercase text-[#9d9d9f] flex-shrink-0'
   title.textContent = titleText
   card.appendChild(title)
 
   const contentContainer = document.createElement('div')
-  contentContainer.className = 'chart-container'
+  contentContainer.className =
+    'chart-container flex-1 relative min-h-0 [container-type:size]'
   card.appendChild(contentContainer)
 
   return { card, contentContainer }
@@ -34,11 +37,11 @@ export function appendReportCard(
   card.style.gridColumn = '1 / span 12'
 
   if (options?.cardClassName) {
-    card.classList.add(options.cardClassName)
+    card.classList.add(...options.cardClassName.split(' '))
   }
 
   if (options?.containerClassName) {
-    contentContainer.classList.add(options.containerClassName)
+    contentContainer.classList.add(...options.containerClassName.split(' '))
   }
 
   chartsGrid.appendChild(card)
@@ -51,14 +54,17 @@ function renderStat(
   value: string
 ): void {
   const stat = document.createElement('div')
-  stat.className = 'report-stat'
+  stat.className =
+    'report-stat flex flex-col justify-center h-full min-h-64 text-center gap-3'
 
   const statValue = document.createElement('div')
-  statValue.className = 'report-stat-value'
+  statValue.className =
+    'report-stat-value text-[clamp(3rem,7vw,6rem)] font-bold leading-[0.95] tracking-[-0.06em] text-[#f2f2f3]'
   statValue.textContent = value
 
   const statLabel = document.createElement('div')
-  statLabel.className = 'report-stat-label'
+  statLabel.className =
+    'report-stat-label text-sm font-semibold tracking-[0.08em] uppercase text-[#9d9d9f]'
   statLabel.textContent = label
 
   stat.appendChild(statValue)
@@ -81,7 +87,8 @@ export function renderMetric(
   const value = entry.aggregates?.[0]?.value ?? 0
 
   const el = document.createElement('div')
-  el.className = 'metric-value'
+  el.className =
+    'metric-value flex items-center justify-center w-full h-full text-[clamp(2rem,30cqh,20rem)] font-bold tracking-[-0.04em] text-[#f2f2f3] text-center'
   el.textContent = Number(value).toLocaleString()
   container.appendChild(el)
 }
@@ -139,8 +146,8 @@ function renderReportChartCard(
   }
 
   const chartContainer = appendReportCard(chartsGrid, reportName, {
-    cardClassName: 'report-chart-card',
-    containerClassName: 'report-chart-container',
+    cardClassName: 'report-chart-card min-h-[28rem]',
+    containerClassName: 'report-chart-container min-h-[22rem]',
   })
 
   renderChart(
@@ -179,7 +186,7 @@ function renderReportTableCard(
   }
 
   const tableContainer = appendReportCard(chartsGrid, `${reportName} Details`, {
-    cardClassName: 'report-table-card',
+    cardClassName: 'report-table-card min-h-80',
   })
 
   renderTable(tableContainer, meta, reportResult)
@@ -194,7 +201,7 @@ function renderReportFallbackCard(
 ): void {
   if (aggregateValue !== null) {
     const statContainer = appendReportCard(chartsGrid, reportName, {
-      cardClassName: 'report-stat-card',
+      cardClassName: 'report-stat-card min-h-64',
     })
 
     renderStat(statContainer, aggregateLabel, String(aggregateValue))
