@@ -43,6 +43,7 @@ export function renderTable(
   const tbody = document.createElement('tbody')
   for (const row of rows) {
     const tr = document.createElement('tr')
+    tr.className = 'group'
     for (let i = 0; i < detailColumns.length; i++) {
       const td = document.createElement('td')
       const cell = row.dataCells[i]

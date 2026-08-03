@@ -34,11 +34,11 @@ export function appendReportCard(
   card.style.gridColumn = '1 / span 12'
 
   if (options?.cardClassName) {
-    card.classList.add(options.cardClassName)
+    card.classList.add(...options.cardClassName.split(' '))
   }
 
   if (options?.containerClassName) {
-    contentContainer.classList.add(options.containerClassName)
+    contentContainer.classList.add(...options.containerClassName.split(' '))
   }
 
   chartsGrid.appendChild(card)
