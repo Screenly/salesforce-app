@@ -1,5 +1,120 @@
-@layer theme, base, utilities;
+@layer theme, base, components, utilities;
 
 @import 'tailwindcss/theme.css' layer(theme);
 @import '@screenly/edge-apps/styles' layer(base);
 @import 'tailwindcss/utilities.css' layer(utilities);
+
+@layer components {
+  .header {
+    @apply flex-shrink-0 rounded-xl py-2 px-5 bg-[#1a1a1a] border border-[#2a2a2a];
+  }
+
+  .dashboard-screen {
+    @apply flex-1 flex-col min-h-0 overflow-hidden gap-5;
+  }
+
+  .dashboard-title {
+    @apply text-[2rem] font-semibold text-[#f2f2f3] tracking-[-0.03em] flex-shrink-0;
+  }
+
+  .charts-grid {
+    @apply grid gap-5 flex-1 overflow-auto content-start;
+  }
+
+  .error-screen {
+    @apply flex-1 items-center justify-center;
+  }
+
+  .error-card {
+    @apply flex flex-row portrait:flex-col overflow-hidden max-w-[60rem] portrait:max-w-full w-full rounded-3xl bg-[#1a1a1a] border border-[rgba(255,80,80,0.2)];
+  }
+
+  .error-aside {
+    @apply bg-[rgba(255,80,80,0.08)] border-[rgba(255,80,80,0.2)] border-r portrait:border-r-0 portrait:border-b py-10 px-8 flex flex-col justify-start gap-4 flex-[0_0_20rem] portrait:flex-none;
+  }
+
+  .error-title {
+    @apply text-[2rem] font-bold leading-[1.2] tracking-[-0.03em] text-[#ff6b6b];
+  }
+
+  .error-body {
+    @apply flex-1 py-10 px-8 flex flex-col justify-start gap-3;
+  }
+
+  .error-label {
+    @apply text-xs font-semibold text-[#9d9d9f] uppercase tracking-[0.08em];
+  }
+
+  .error-aside p,
+  .error-message {
+    @apply text-base text-[#dadadb] leading-[1.6];
+  }
+
+  .error-message {
+    @apply break-words;
+  }
+
+  .chart-card {
+    @apply bg-[#1a1a1a] border border-[#2a2a2a] rounded-3xl py-7 px-8 flex flex-col gap-4 min-h-0 overflow-hidden;
+  }
+
+  .chart-title {
+    @apply text-xs font-semibold tracking-[0.08em] uppercase text-[#9d9d9f] flex-shrink-0;
+  }
+
+  .chart-container {
+    @apply flex-1 relative min-h-0 [container-type:size];
+  }
+
+  .report-chart-card {
+    @apply min-h-[28rem];
+  }
+
+  .report-chart-container {
+    @apply min-h-[22rem];
+  }
+
+  .report-table-card {
+    @apply min-h-80;
+  }
+
+  .report-stat-card {
+    @apply min-h-64;
+  }
+
+  .report-stat {
+    @apply flex flex-col justify-center h-full min-h-64 text-center gap-3;
+  }
+
+  .report-stat-value {
+    @apply text-[clamp(3rem,7vw,6rem)] font-bold leading-[0.95] tracking-[-0.06em] text-[#f2f2f3];
+  }
+
+  .report-stat-label {
+    @apply text-sm font-semibold tracking-[0.08em] uppercase text-[#9d9d9f];
+  }
+
+  .metric-value {
+    @apply flex items-center justify-center w-full h-full text-[clamp(2rem,30cqh,20rem)] font-bold tracking-[-0.04em] text-[#f2f2f3] text-center;
+  }
+
+  .empty-state {
+    @apply text-[#9d9d9f] text-sm text-center m-auto;
+  }
+
+  .table-scroll {
+    @apply w-full h-full overflow-auto;
+  }
+
+  .data-table {
+    @apply w-full border-collapse text-[#dadadb];
+  }
+
+  .data-table th {
+    @apply px-4 py-3 text-left text-xs font-semibold tracking-[0.08em] uppercase text-[#9d9d9f] whitespace-nowrap bg-[linear-gradient(#2a2a2a,#2a2a2a)] [background-size:100%_0.0625rem] bg-bottom bg-no-repeat;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 text-[0.9rem] text-left whitespace-nowrap min-w-32 bg-[linear-gradient(#2a2a2a,#2a2a2a)] [background-size:100%_0.0625rem] bg-bottom bg-no-repeat group-last:bg-none;
+  }
+}
