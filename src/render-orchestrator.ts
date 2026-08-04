@@ -73,10 +73,6 @@ function renderContentResults(
   renderReport(contentId, content.results, showLabels)
 }
 
-function handleError(message: string, displayErrors: boolean): void {
-  if (displayErrors) throw new Error(message)
-}
-
 function toErrorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback
 }
@@ -89,8 +85,8 @@ function reportContentRenderError(ctx: RenderContext, err: unknown): void {
   })
 }
 
-function showContentFailure(ctx: RenderContext, err: unknown): RenderOutcome {
-  handleError(toErrorMessage(err, 'Failed to load content.'), ctx.displayErrors)
+function showContentFailure(err: unknown): RenderOutcome {
+  throw new Error(toErrorMessage(err, 'Failed to load content.'))
   return 'shown'
 }
 
@@ -143,7 +139,7 @@ function renderCachedContent(ctx: RenderContext): RenderOutcome | null {
 
 function handleContentFailure(ctx: RenderContext, err: unknown): RenderOutcome {
   if (!shouldSkipBackendError(err, ctx.displayErrors)) {
-    return showContentFailure(ctx, err)
+    return showContentFailure(err)
   }
   return renderCachedContent(ctx) ?? 'skipped'
 }
@@ -159,20 +155,17 @@ function requireCredentials(ctx: RenderContext): CredentialsResult {
     return { ok: false, outcome: 'skipped' }
   }
 
-  handleError(credentialError!.message, ctx.displayErrors)
-  return { ok: false, outcome: 'shown' }
+  throw new Error(credentialError!.message)
 }
 
 function requireRefreshedCredentials(ctx: RenderContext): CredentialsResult {
   const { accessToken, instanceUrl } = ctx.getRuntimeState()
 
   if (!accessToken) {
-    handleError('No access token.', ctx.displayErrors)
-    return { ok: false, outcome: 'shown' }
+    throw new Error('No access token.')
   }
   if (!instanceUrl) {
-    handleError('No instance URL available.', ctx.displayErrors)
-    return { ok: false, outcome: 'shown' }
+    throw new Error('No instance URL available.')
   }
 
   return { ok: true, accessToken, instanceUrl }
@@ -186,11 +179,10 @@ async function refreshCredentials(
     return null
   } catch (err) {
     if (!shouldSkipBackendError(err, ctx.displayErrors)) {
-      handleError(
+      throw new Error(
         toErrorMessage(err, 'Session expired. Please re-authenticate.'),
-        ctx.displayErrors
+        { cause: err }
       )
-      return 'shown'
     }
 
     // A skippable error may still have recovered credentials from cache

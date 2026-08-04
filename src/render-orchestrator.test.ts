@@ -163,9 +163,8 @@ describe('render content failover', () => {
     })
     const ctx = makeContext({ displayErrors: false })
 
-    const outcome = await render(ctx)
+    await expect(render(ctx)).rejects.toThrow('some unrelated failure')
 
-    expect(outcome).toBe('shown')
     expect(readCachedContent).not.toHaveBeenCalled()
   })
 })
