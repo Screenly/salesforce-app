@@ -42,20 +42,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     contentId,
     contentType,
     getRuntimeState,
-    refreshToken,
     displayErrors,
     showLabels,
   }
 
-  render(context)
+  await render(context)
 
   signalReady()
 
   setInterval(async () => {
-    try {
-      await render(context)
-    } catch (err) {
-      console.error('Refresh failed:', err)
-    }
+    await render(context)
   }, refreshInterval * 1000)
 })

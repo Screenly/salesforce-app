@@ -37,7 +37,6 @@ mock.module('./render', () => ({
 
 const { BackendServerError } = await import('./errors')
 const { render, shouldSkipBackendError } = await import('./render-orchestrator')
-const { AuthError } = await import('./api')
 
 describe('shouldSkipBackendError', () => {
   test('skips a backend outage when display_errors is off', () => {
@@ -96,9 +95,8 @@ describe('render success', () => {
   test('renders live content and writes it to cache on success', async () => {
     const context = makeContext()
 
-    const outcome = await render(context)
+    await render(context)
 
-    expect(outcome).toBe('shown')
     expect(writeCachedContent).toHaveBeenCalledWith(
       CONTENT_TYPE,
       CONTENT_ID,
@@ -119,22 +117,20 @@ describe('render content failover', () => {
     })
     const context = makeContext({ displayErrors: false })
 
-    const outcome = await render(context)
+    await render(context)
 
-    expect(outcome).toBe('shown')
     expect(renderDashboard).toHaveBeenCalled()
   })
 
-  test('returns skipped on a backend outage with no cache hit', async () => {
+  test('throws an error on a backend outage with no cache hit', async () => {
     getDashboardResults.mockImplementationOnce(async () => {
       throw new BackendServerError('down')
     })
     readCachedContent.mockReturnValue(null)
     const context = makeContext({ displayErrors: false })
 
-    const outcome = await render(context)
+    await expect(render(context)).rejects.toThrow('No cached content found.')
 
-    expect(outcome).toBe('skipped')
     expect(renderDashboard).not.toHaveBeenCalled()
   })
 
@@ -153,7 +149,7 @@ describe('render content failover', () => {
     expect(readCachedContent).not.toHaveBeenCalled()
   })
 
-  test('shows the error instead of using the cache for a non-backend error', async () => {
+  test('renders from cache on an error when display_errors is off', async () => {
     getDashboardResults.mockImplementationOnce(async () => {
       throw new Error('some unrelated failure')
     })
@@ -163,66 +159,8 @@ describe('render content failover', () => {
     })
     const context = makeContext({ displayErrors: false })
 
-    await expect(render(context)).rejects.toThrow('some unrelated failure')
+    await render(context)
 
-    expect(readCachedContent).not.toHaveBeenCalled()
-  })
-})
-
-describe('render credential retry failover', () => {
-  test('recovers via cache-populated credentials on an AuthError retry and returns shown', async () => {
-    getDashboardResults.mockImplementationOnce(async () => {
-      throw new AuthError('unauthorized')
-    })
-
-    // Credentials are present for the initial attempt; the retry's
-    // refreshToken call fails, but the runtime state has already been
-    // repopulated from cache (as credentials.ts's applyFailedRefresh does),
-    // so the retry should proceed to render rather than abort.
-    const context = makeContext({
-      getRuntimeState: () => ({
-        accessToken: ACCESS_TOKEN,
-        instanceUrl: INSTANCE_URL,
-        credentialError: null,
-      }),
-      refreshToken: async () => {
-        throw new BackendServerError('down')
-      },
-    })
-
-    const outcome = await render(context)
-
-    expect(outcome).toBe('shown')
-  })
-
-  test('returns skipped on the AuthError retry path with no cached credentials', async () => {
-    getDashboardResults.mockImplementationOnce(async () => {
-      throw new AuthError('unauthorized')
-    })
-
-    let callCount = 0
-    const context = makeContext({
-      getRuntimeState: () => {
-        callCount += 1
-        // First call (the initial credentials check) succeeds so the
-        // content fetch is attempted at all; subsequent calls (during the
-        // retry) simulate no cached credentials being available.
-        if (callCount === 1) {
-          return {
-            accessToken: ACCESS_TOKEN,
-            instanceUrl: INSTANCE_URL,
-            credentialError: null,
-          }
-        }
-        return { accessToken: null, instanceUrl: null, credentialError: null }
-      },
-      refreshToken: async () => {
-        throw new BackendServerError('down')
-      },
-    })
-
-    const outcome = await render(context)
-
-    expect(outcome).toBe('skipped')
+    expect(renderDashboard).toHaveBeenCalled()
   })
 })
