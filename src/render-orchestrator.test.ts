@@ -29,12 +29,10 @@ mock.module('./api', () => ({
 const renderDashboard = mock(() => {})
 const renderReport = mock(() => {})
 const showScreen = mock(() => {})
-const showError = mock(() => {})
 mock.module('./render', () => ({
   renderDashboard,
   renderReport,
   showScreen,
-  showError,
 }))
 
 const { BackendServerError } = await import('./errors')
@@ -92,7 +90,6 @@ beforeEach(() => {
   renderDashboard.mockClear()
   renderReport.mockClear()
   showScreen.mockClear()
-  showError.mockClear()
 })
 
 describe('render success', () => {
@@ -126,7 +123,6 @@ describe('render content failover', () => {
 
     expect(outcome).toBe('shown')
     expect(renderDashboard).toHaveBeenCalled()
-    expect(showError).not.toHaveBeenCalled()
   })
 
   test('returns skipped on a backend outage with no cache hit', async () => {
@@ -139,7 +135,6 @@ describe('render content failover', () => {
     const outcome = await render(ctx)
 
     expect(outcome).toBe('skipped')
-    expect(showError).not.toHaveBeenCalled()
     expect(renderDashboard).not.toHaveBeenCalled()
   })
 
@@ -171,7 +166,6 @@ describe('render content failover', () => {
     const outcome = await render(ctx)
 
     expect(outcome).toBe('shown')
-    expect(showError).toHaveBeenCalledWith('some unrelated failure')
     expect(readCachedContent).not.toHaveBeenCalled()
   })
 })

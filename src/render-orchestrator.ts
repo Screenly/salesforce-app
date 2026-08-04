@@ -8,7 +8,7 @@ import {
 import { readCachedContent, writeCachedContent } from './cache'
 import type { RefreshToken, RuntimeState } from './credentials'
 import { shouldSkipBackendError } from './errors'
-import { renderDashboard, renderReport, showScreen, showError } from './render'
+import { renderDashboard, renderReport, showScreen } from './render'
 import type {
   DashboardResults,
   ReportResult,
@@ -75,7 +75,6 @@ function renderContentResults(
 
 function handleError(message: string, displayErrors: boolean): void {
   if (displayErrors) throw new Error(message)
-  showError(message)
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
