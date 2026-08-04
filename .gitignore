@@ -2,5 +2,6 @@ node_modules/
 dist/
 .screenly/
 mock-data.yml
+screenshots/**/*.png
 *.local
 .DS_Store
