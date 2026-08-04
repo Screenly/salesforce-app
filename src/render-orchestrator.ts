@@ -19,13 +19,6 @@ export type RenderOutcome = 'shown' | 'skipped'
 
 export { shouldSkipBackendError } from './errors'
 
-export function shouldSignalReady(
-  outcome: RenderOutcome,
-  hasRenderedOnce: boolean
-): boolean {
-  return outcome === 'shown' && !hasRenderedOnce
-}
-
 export type RenderContext = {
   contentId: string
   contentType: SalesforceContentType

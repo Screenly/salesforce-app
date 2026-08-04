@@ -38,8 +38,7 @@ mock.module('./render', () => ({
 }))
 
 const { BackendServerError } = await import('./errors')
-const { render, shouldSkipBackendError, shouldSignalReady } =
-  await import('./render-orchestrator')
+const { render, shouldSkipBackendError } = await import('./render-orchestrator')
 const { AuthError } = await import('./api')
 
 describe('shouldSkipBackendError', () => {
@@ -59,24 +58,6 @@ describe('shouldSkipBackendError', () => {
     expect(shouldSkipBackendError(new Error('not connected'), false)).toBe(
       false
     )
-  })
-})
-
-describe('shouldSignalReady', () => {
-  test('does not signal ready when preloading and the render was skipped', () => {
-    expect(shouldSignalReady('skipped', false)).toBe(false)
-  })
-
-  test('does not signal ready again once already rendered, even if skipped again', () => {
-    expect(shouldSignalReady('skipped', true)).toBe(false)
-  })
-
-  test('signals ready the first time something is shown', () => {
-    expect(shouldSignalReady('shown', false)).toBe(true)
-  })
-
-  test('does not signal ready again after the first time something is shown', () => {
-    expect(shouldSignalReady('shown', true)).toBe(false)
   })
 })
 
