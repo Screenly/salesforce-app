@@ -77,11 +77,11 @@ function toErrorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback
 }
 
-function reportContentRenderError(ctx: RenderContext, err: unknown): void {
+function reportContentRenderError(context: RenderContext, err: unknown): void {
   reportError(err, {
     source: 'salesforce-content',
-    contentId: ctx.contentId,
-    contentType: ctx.contentType,
+    contentId: context.contentId,
+    contentType: context.contentType,
   })
 }
 
@@ -91,19 +91,19 @@ function showContentFailure(err: unknown): RenderOutcome {
 }
 
 async function attemptRenderContent(
-  ctx: RenderContext,
+  context: RenderContext,
   accessToken: string,
   instanceUrl: string
 ): Promise<RenderAttempt> {
   try {
     const content = await fetchContentResults(
-      ctx.contentType,
+      context.contentType,
       instanceUrl,
       accessToken,
-      ctx.contentId
+      context.contentId
     )
-    writeCachedContent(ctx.contentType, ctx.contentId, content.results)
-    renderContentResults(ctx.contentId, content, ctx.showLabels)
+    writeCachedContent(context.contentType, context.contentId, content.results)
+    renderContentResults(context.contentId, content, context.showLabels)
     return { ok: true, outcome: 'shown' }
   } catch (err) {
     return { ok: false, error: err }
@@ -119,15 +119,15 @@ function buildContentResults(
     : { contentType: 'report', results: results as ReportResult }
 }
 
-function renderCachedContent(ctx: RenderContext): RenderOutcome | null {
-  const cached = readCachedContent(ctx.contentType, ctx.contentId)
+function renderCachedContent(context: RenderContext): RenderOutcome | null {
+  const cached = readCachedContent(context.contentType, context.contentId)
   if (!cached) return null
 
   try {
     renderContentResults(
-      ctx.contentId,
-      buildContentResults(ctx.contentType, cached),
-      ctx.showLabels
+      context.contentId,
+      buildContentResults(context.contentType, cached),
+      context.showLabels
     )
   } catch {
     return null
@@ -137,29 +137,35 @@ function renderCachedContent(ctx: RenderContext): RenderOutcome | null {
   return 'shown'
 }
 
-function handleContentFailure(ctx: RenderContext, err: unknown): RenderOutcome {
-  if (!shouldSkipBackendError(err, ctx.displayErrors)) {
+function handleContentFailure(
+  context: RenderContext,
+  err: unknown
+): RenderOutcome {
+  if (!shouldSkipBackendError(err, context.displayErrors)) {
     return showContentFailure(err)
   }
-  return renderCachedContent(ctx) ?? 'skipped'
+  return renderCachedContent(context) ?? 'skipped'
 }
 
-function requireCredentials(ctx: RenderContext): CredentialsResult {
-  const { accessToken, instanceUrl, credentialError } = ctx.getRuntimeState()
+function requireCredentials(context: RenderContext): CredentialsResult {
+  const { accessToken, instanceUrl, credentialError } =
+    context.getRuntimeState()
 
   if (accessToken && instanceUrl) {
     return { ok: true, accessToken, instanceUrl }
   }
 
-  if (shouldSkipBackendError(credentialError, ctx.displayErrors)) {
+  if (shouldSkipBackendError(credentialError, context.displayErrors)) {
     return { ok: false, outcome: 'skipped' }
   }
 
   throw new Error(credentialError!.message)
 }
 
-function requireRefreshedCredentials(ctx: RenderContext): CredentialsResult {
-  const { accessToken, instanceUrl } = ctx.getRuntimeState()
+function requireRefreshedCredentials(
+  context: RenderContext
+): CredentialsResult {
+  const { accessToken, instanceUrl } = context.getRuntimeState()
 
   if (!accessToken) {
     throw new Error('No access token.')
@@ -172,13 +178,13 @@ function requireRefreshedCredentials(ctx: RenderContext): CredentialsResult {
 }
 
 async function refreshCredentials(
-  ctx: RenderContext
+  context: RenderContext
 ): Promise<RenderOutcome | null> {
   try {
-    await ctx.refreshToken()
+    await context.refreshToken()
     return null
   } catch (err) {
-    if (!shouldSkipBackendError(err, ctx.displayErrors)) {
+    if (!shouldSkipBackendError(err, context.displayErrors)) {
       throw new Error(
         toErrorMessage(err, 'Session expired. Please re-authenticate.'),
         { cause: err }
@@ -188,32 +194,32 @@ async function refreshCredentials(
     // A skippable error may still have recovered credentials from cache
     // (see credentials.ts's applyFailedRefresh), in which case the retry
     // should proceed to render instead of aborting.
-    const { accessToken, instanceUrl } = ctx.getRuntimeState()
+    const { accessToken, instanceUrl } = context.getRuntimeState()
     return accessToken && instanceUrl ? null : 'skipped'
   }
 }
 
 async function resolveCredentials(
-  ctx: RenderContext,
+  context: RenderContext,
   isRetry: boolean
 ): Promise<CredentialsResult> {
-  if (!isRetry) return requireCredentials(ctx)
+  if (!isRetry) return requireCredentials(context)
 
-  const refreshOutcome = await refreshCredentials(ctx)
+  const refreshOutcome = await refreshCredentials(context)
   if (refreshOutcome) return { ok: false, outcome: refreshOutcome }
 
-  return requireRefreshedCredentials(ctx)
+  return requireRefreshedCredentials(context)
 }
 
 export async function render(
-  ctx: RenderContext,
+  context: RenderContext,
   isRetry = false
 ): Promise<RenderOutcome> {
-  const credentials = await resolveCredentials(ctx, isRetry)
+  const credentials = await resolveCredentials(context, isRetry)
   if (!credentials.ok) return credentials.outcome
 
   const attempt = await attemptRenderContent(
-    ctx,
+    context,
     credentials.accessToken,
     credentials.instanceUrl
   )
@@ -223,11 +229,11 @@ export async function render(
   }
 
   if (!(attempt.error instanceof AuthError)) {
-    reportContentRenderError(ctx, attempt.error)
-    return handleContentFailure(ctx, attempt.error)
+    reportContentRenderError(context, attempt.error)
+    return handleContentFailure(context, attempt.error)
   }
 
-  if (!isRetry) return render(ctx, true)
+  if (!isRetry) return render(context, true)
 
-  return handleContentFailure(ctx, attempt.error)
+  return handleContentFailure(context, attempt.error)
 }

@@ -94,9 +94,9 @@ beforeEach(() => {
 
 describe('render success', () => {
   test('renders live content and writes it to cache on success', async () => {
-    const ctx = makeContext()
+    const context = makeContext()
 
-    const outcome = await render(ctx)
+    const outcome = await render(context)
 
     expect(outcome).toBe('shown')
     expect(writeCachedContent).toHaveBeenCalledWith(
@@ -117,9 +117,9 @@ describe('render content failover', () => {
       dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },
       componentData: [],
     })
-    const ctx = makeContext({ displayErrors: false })
+    const context = makeContext({ displayErrors: false })
 
-    const outcome = await render(ctx)
+    const outcome = await render(context)
 
     expect(outcome).toBe('shown')
     expect(renderDashboard).toHaveBeenCalled()
@@ -130,9 +130,9 @@ describe('render content failover', () => {
       throw new BackendServerError('down')
     })
     readCachedContent.mockReturnValue(null)
-    const ctx = makeContext({ displayErrors: false })
+    const context = makeContext({ displayErrors: false })
 
-    const outcome = await render(ctx)
+    const outcome = await render(context)
 
     expect(outcome).toBe('skipped')
     expect(renderDashboard).not.toHaveBeenCalled()
@@ -146,9 +146,9 @@ describe('render content failover', () => {
       dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },
       componentData: [],
     })
-    const ctx = makeContext({ displayErrors: true })
+    const context = makeContext({ displayErrors: true })
 
-    await expect(render(ctx)).rejects.toThrow('down')
+    await expect(render(context)).rejects.toThrow('down')
 
     expect(readCachedContent).not.toHaveBeenCalled()
   })
@@ -161,9 +161,9 @@ describe('render content failover', () => {
       dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },
       componentData: [],
     })
-    const ctx = makeContext({ displayErrors: false })
+    const context = makeContext({ displayErrors: false })
 
-    await expect(render(ctx)).rejects.toThrow('some unrelated failure')
+    await expect(render(context)).rejects.toThrow('some unrelated failure')
 
     expect(readCachedContent).not.toHaveBeenCalled()
   })
@@ -179,7 +179,7 @@ describe('render credential retry failover', () => {
     // refreshToken call fails, but the runtime state has already been
     // repopulated from cache (as credentials.ts's applyFailedRefresh does),
     // so the retry should proceed to render rather than abort.
-    const ctx = makeContext({
+    const context = makeContext({
       getRuntimeState: () => ({
         accessToken: ACCESS_TOKEN,
         instanceUrl: INSTANCE_URL,
@@ -190,7 +190,7 @@ describe('render credential retry failover', () => {
       },
     })
 
-    const outcome = await render(ctx)
+    const outcome = await render(context)
 
     expect(outcome).toBe('shown')
   })
@@ -201,7 +201,7 @@ describe('render credential retry failover', () => {
     })
 
     let callCount = 0
-    const ctx = makeContext({
+    const context = makeContext({
       getRuntimeState: () => {
         callCount += 1
         // First call (the initial credentials check) succeeds so the
@@ -221,7 +221,7 @@ describe('render credential retry failover', () => {
       },
     })
 
-    const outcome = await render(ctx)
+    const outcome = await render(context)
 
     expect(outcome).toBe('skipped')
   })
