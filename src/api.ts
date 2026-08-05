@@ -10,14 +10,15 @@ function apiUrl(instanceUrl: string, path: string): string {
 
 export class AuthError extends Error {}
 
-async function performApiRequest(
+async function apiFetch<T>(
   instanceUrl: string,
   accessToken: string,
   path: string,
   method: 'GET' | 'PUT' = 'GET'
-): Promise<Response> {
+): Promise<T> {
+  let response: Response
   try {
-    return await fetch(apiUrl(instanceUrl, path), {
+    response = await fetch(apiUrl(instanceUrl, path), {
       method,
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -30,27 +31,17 @@ async function performApiRequest(
       { cause: err }
     )
   }
-}
 
-function classifyApiResponse(res: Response, path: string): void {
-  if (res.status === 401) throw new AuthError(`Unauthorized: ${path}`)
-  if (res.status === 404)
+  if (response.status === 401) throw new AuthError(`Unauthorized: ${path}`)
+  if (response.status === 404)
     throw new Error(
       'The selected content could not be found. Please verify that it still exists in Salesforce.'
     )
-  if (res.status >= 500 || res.status === 429)
-    throw new Error(`Salesforce's API had a problem (${res.status}).`)
-  if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
-}
+  if (response.status >= 500 || response.status === 429)
+    throw new Error(`Salesforce's API had a problem (${response.status}).`)
+  if (!response.ok) throw new Error(`API error ${response.status}: ${path}`)
 
-async function apiFetch<T>(
-  instanceUrl: string,
-  accessToken: string,
-  path: string
-): Promise<T> {
-  const res = await performApiRequest(instanceUrl, accessToken, path)
-  classifyApiResponse(res, path)
-  return res.json() as Promise<T>
+  return response.json() as Promise<T>
 }
 
 export async function triggerDashboardRefresh(
@@ -59,7 +50,7 @@ export async function triggerDashboardRefresh(
   contentId: string
 ): Promise<void> {
   const path = `/analytics/dashboards/${contentId}`
-  await performApiRequest(instanceUrl, accessToken, path, 'PUT').catch(() => {})
+  await apiFetch(instanceUrl, accessToken, path, 'PUT').catch(() => {})
 }
 
 export async function getDashboardResults(
