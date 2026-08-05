@@ -42,51 +42,38 @@ type CredentialsResult =
   | { ok: true; accessToken: string; instanceUrl: string }
   | { ok: false }
 
-type LoadAttempt =
-  | { ok: true; content: ContentResults }
-  | { ok: false; error: unknown }
-
-type ContentResults =
-  | { contentType: 'dashboard'; results: DashboardResults }
-  | { contentType: 'report'; results: ReportResult }
-
 async function fetchContentResults(
   contentType: SalesforceContentType,
   instanceUrl: string,
   accessToken: string,
   contentId: string
-): Promise<ContentResults> {
+): Promise<DashboardResults | ReportResult> {
   if (contentType === 'dashboard') {
     await triggerDashboardRefresh(instanceUrl, accessToken, contentId)
-    const results = await getDashboardResults(
-      instanceUrl,
-      accessToken,
-      contentId
-    )
-    return { contentType, results }
+    return getDashboardResults(instanceUrl, accessToken, contentId)
   }
 
-  const results = await getReportResults(instanceUrl, accessToken, contentId)
-  return { contentType, results }
+  return getReportResults(instanceUrl, accessToken, contentId)
 }
 
 async function loadContent(
   context: RenderContext,
   accessToken: string,
   instanceUrl: string
-): Promise<LoadAttempt> {
-  try {
-    const content = await fetchContentResults(
-      context.contentType,
-      instanceUrl,
-      accessToken,
-      context.contentId
-    )
-    writeCachedContent(context.contentType, context.contentId, content.results)
-    return { ok: true, content }
-  } catch (err) {
-    return { ok: false, error: err }
-  }
+): Promise<void> {
+  const results = await fetchContentResults(
+    context.contentType,
+    instanceUrl,
+    accessToken,
+    context.contentId
+  )
+  writeCachedContent(context.contentType, context.contentId, results)
+  showContent({
+    contentType: context.contentType,
+    contentId: context.contentId,
+    results,
+    showLabels: context.showLabels,
+  } as ContentToRender)
 }
 
 function showCachedContent(context: RenderContext): void {
@@ -132,25 +119,14 @@ export async function render(context: RenderContext): Promise<void> {
   const credentials = requireCredentials(context)
   if (!credentials.ok) return
 
-  const attempt = await loadContent(
-    context,
-    credentials.accessToken,
-    credentials.instanceUrl
-  )
-
-  if (attempt.ok) {
-    showContent({
-      ...attempt.content,
+  try {
+    await loadContent(context, credentials.accessToken, credentials.instanceUrl)
+  } catch (err) {
+    reportError(err, {
+      source: 'salesforce-content',
       contentId: context.contentId,
-      showLabels: context.showLabels,
+      contentType: context.contentType,
     })
-    return
+    handleContentFailure(context, err)
   }
-
-  reportError(attempt.error, {
-    source: 'salesforce-content',
-    contentId: context.contentId,
-    contentType: context.contentType,
-  })
-  handleContentFailure(context, attempt.error)
 }
