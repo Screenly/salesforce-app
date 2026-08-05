@@ -9,7 +9,7 @@ import {
 import { setupSentry } from '@screenly/edge-apps/utils'
 import {
   inferSalesforceContentType,
-  render,
+  refreshContent,
   type RenderContext,
 } from './content'
 import { createCredentialManager } from './credentials'
@@ -39,19 +39,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initTokenRefreshLoop(refreshToken)
 
-  const context: RenderContext = {
-    contentId,
-    contentType,
-    getRuntimeState,
-    displayErrors,
-    showLabels,
+  const refresh = async () => {
+    const context: RenderContext = {
+      contentId,
+      contentType,
+      runtimeState: getRuntimeState(),
+      displayErrors,
+      showLabels,
+    }
+    await refreshContent(context)
   }
 
-  await render(context)
+  await refresh()
 
   signalReady()
 
-  setInterval(async () => {
-    await render(context)
-  }, refreshInterval * 1000)
+  setInterval(refresh, refreshInterval * 1000)
 })

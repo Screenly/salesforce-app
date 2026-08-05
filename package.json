@@ -33,6 +33,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "chartjs-plugin-datalabels": "^2.2.0"
+    "chartjs-plugin-datalabels": "^2.2.0",
+    "lit-html": "^3.3.3"
   }
 }
