@@ -28,11 +28,11 @@ mock.module('./api', () => ({
 
 const renderDashboard = mock(() => {})
 const renderReport = mock(() => {})
-const showScreen = mock(() => {})
+const showDashboardContainer = mock(() => {})
 mock.module('./render', () => ({
   renderDashboard,
   renderReport,
-  showScreen,
+  showDashboardContainer,
 }))
 
 const { render } = await import('./render-orchestrator')
@@ -67,7 +67,7 @@ beforeEach(() => {
   triggerDashboardRefresh.mockClear()
   renderDashboard.mockClear()
   renderReport.mockClear()
-  showScreen.mockClear()
+  showDashboardContainer.mockClear()
 })
 
 describe('render success', () => {

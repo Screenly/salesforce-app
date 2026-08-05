@@ -6,7 +6,7 @@ import {
 } from './api'
 import { readCachedContent, writeCachedContent } from './cache'
 import type { RuntimeState } from './credentials'
-import { renderDashboard, renderReport, showScreen } from './render'
+import { renderDashboard, renderReport, showDashboardContainer } from './render'
 import type {
   DashboardResults,
   ReportResult,
@@ -114,7 +114,7 @@ function renderCachedContent(context: RenderContext): void {
     context.showLabels
   )
 
-  showScreen('dashboard-screen')
+  showDashboardContainer()
 }
 
 function handleContentFailure(context: RenderContext, err: unknown): void {
@@ -150,7 +150,7 @@ export async function render(context: RenderContext): Promise<void> {
   )
 
   if (attempt.ok) {
-    showScreen('dashboard-screen')
+    showDashboardContainer()
     return
   }
 
