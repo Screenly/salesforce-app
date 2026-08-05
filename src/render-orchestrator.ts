@@ -15,8 +15,6 @@ import type {
 
 export type RenderOutcome = 'shown' | 'skipped'
 
-export { shouldSkipBackendError } from './errors'
-
 export type RenderContext = {
   contentId: string
   contentType: SalesforceContentType

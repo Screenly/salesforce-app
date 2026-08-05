@@ -17,7 +17,7 @@ mock.module('./cache', () => ({
   writeCachedCredentials,
 }))
 
-const { createCredentialManager, BackendServerError, NO_CREDENTIALS_MESSAGE } =
+const { createCredentialManager, NO_CREDENTIALS_MESSAGE } =
   await import('./credentials')
 
 const CONTENT_ID = '01Zg5000002iDwTEAU'
@@ -105,12 +105,12 @@ describe('success', () => {
   })
 })
 
-describe('backend outage errors', () => {
-  async function expectBackendServerError() {
+describe('network and server errors', () => {
+  async function expectRefreshFailure(message: string) {
     const { refreshToken, getRuntimeState } = makeManager()
 
-    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
-    expect(getRuntimeState().credentialError).toBeInstanceOf(BackendServerError)
+    await expect(refreshToken()).rejects.toThrow(message)
+    expect(getRuntimeState().credentialError?.message).toBe(message)
     expect(reportError).toHaveBeenCalledTimes(1)
   }
 
@@ -118,7 +118,7 @@ describe('backend outage errors', () => {
     const json = mock(async () => ({}))
     stubFetch(async () => ({ status: 503, ok: false, json }))
 
-    await expectBackendServerError()
+    await expectRefreshFailure("Screenly's server had a problem (503).")
     expect(json).not.toHaveBeenCalled()
   })
 
@@ -127,13 +127,15 @@ describe('backend outage errors', () => {
       throw new TypeError('Failed to fetch')
     })
 
-    await expectBackendServerError()
+    await expectRefreshFailure(
+      "Screenly's server could not be reached (Failed to fetch)."
+    )
   })
 
   test('throws on a 429 response', async () => {
     fakeResponse(429, undefined)
 
-    await expectBackendServerError()
+    await expectRefreshFailure("Screenly's server had a problem (429).")
   })
 })
 
@@ -229,7 +231,7 @@ describe('credential caching', () => {
     })
   })
 
-  test('repopulates state from cache on a skippable backend outage', async () => {
+  test('repopulates state from cache when a refresh fails and display_errors is off', async () => {
     readCachedCredentials.mockReturnValue({
       accessToken: 'cached-token',
       instanceUrl: 'https://cached.salesforce.com',
@@ -237,7 +239,9 @@ describe('credential caching', () => {
     failWithNetworkError('network down')
     const { refreshToken, getRuntimeState } = makeManager(false)
 
-    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
+    await expect(refreshToken()).rejects.toThrow(
+      "Screenly's server could not be reached"
+    )
 
     expect(getRuntimeState().accessToken).toBe('cached-token')
     expect(getRuntimeState().instanceUrl).toBe('https://cached.salesforce.com')
@@ -251,22 +255,9 @@ describe('credential caching', () => {
     failWithNetworkError('network down')
     const { refreshToken, getRuntimeState } = makeManager(true)
 
-    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
-
-    expect(readCachedCredentials).not.toHaveBeenCalled()
-    expect(getRuntimeState().accessToken).toBeNull()
-    expect(getRuntimeState().instanceUrl).toBeNull()
-  })
-
-  test('does not consult the cache for a non-backend error', async () => {
-    readCachedCredentials.mockReturnValue({
-      accessToken: 'cached-token',
-      instanceUrl: 'https://cached.salesforce.com',
-    })
-    fakeResponse(200, { token: '', metadata: undefined })
-    const { refreshToken, getRuntimeState } = makeManager(false)
-
-    await expect(refreshToken()).rejects.toThrow(NO_CREDENTIALS_MESSAGE)
+    await expect(refreshToken()).rejects.toThrow(
+      "Screenly's server could not be reached"
+    )
 
     expect(readCachedCredentials).not.toHaveBeenCalled()
     expect(getRuntimeState().accessToken).toBeNull()
@@ -281,10 +272,14 @@ describe('credential caching', () => {
     failWithNetworkError('network down')
     const { refreshToken } = makeManager(false)
 
-    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
+    await expect(refreshToken()).rejects.toThrow(
+      "Screenly's server could not be reached"
+    )
     expect(readCachedCredentials).toHaveBeenCalledTimes(1)
 
-    await expect(refreshToken()).rejects.toBeInstanceOf(BackendServerError)
+    await expect(refreshToken()).rejects.toThrow(
+      "Screenly's server could not be reached"
+    )
     expect(readCachedCredentials).toHaveBeenCalledTimes(1)
   })
 })

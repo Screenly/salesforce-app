@@ -35,28 +35,7 @@ mock.module('./render', () => ({
   showScreen,
 }))
 
-const { BackendServerError } = await import('./errors')
-const { render, shouldSkipBackendError } = await import('./render-orchestrator')
-
-describe('shouldSkipBackendError', () => {
-  test('skips a backend outage when display_errors is off', () => {
-    expect(shouldSkipBackendError(new BackendServerError('boom'), false)).toBe(
-      true
-    )
-  })
-
-  test('does not skip a backend outage when display_errors is on', () => {
-    expect(shouldSkipBackendError(new BackendServerError('boom'), true)).toBe(
-      false
-    )
-  })
-
-  test('does not skip a non-backend error', () => {
-    expect(shouldSkipBackendError(new Error('not connected'), false)).toBe(
-      false
-    )
-  })
-})
+const { render } = await import('./render-orchestrator')
 
 const CONTENT_ID = '01Zg5000002iDwTEAU'
 const CONTENT_TYPE = 'dashboard'
@@ -107,24 +86,9 @@ describe('render success', () => {
 })
 
 describe('render content failover', () => {
-  test('renders from cache and returns shown on a backend outage with a cache hit', async () => {
+  test('throws an error when there is no cache hit', async () => {
     getDashboardResults.mockImplementationOnce(async () => {
-      throw new BackendServerError('down')
-    })
-    readCachedContent.mockReturnValue({
-      dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },
-      componentData: [],
-    })
-    const context = makeContext({ displayErrors: false })
-
-    await render(context)
-
-    expect(renderDashboard).toHaveBeenCalled()
-  })
-
-  test('throws an error on a backend outage with no cache hit', async () => {
-    getDashboardResults.mockImplementationOnce(async () => {
-      throw new BackendServerError('down')
+      throw new Error('down')
     })
     readCachedContent.mockReturnValue(null)
     const context = makeContext({ displayErrors: false })
@@ -136,7 +100,7 @@ describe('render content failover', () => {
 
   test('shows the error instead of using the cache when display_errors is on', async () => {
     getDashboardResults.mockImplementationOnce(async () => {
-      throw new BackendServerError('down')
+      throw new Error('down')
     })
     readCachedContent.mockReturnValue({
       dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },

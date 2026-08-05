@@ -10,7 +10,6 @@ const {
   triggerDashboardRefresh,
   AuthError,
 } = await import('./api')
-const { BackendServerError } = await import('./errors')
 
 const INSTANCE_URL = 'https://na1.salesforce.com'
 const ACCESS_TOKEN = 'abc'
@@ -49,30 +48,30 @@ describe('getDashboardResults', () => {
     expect(result).toEqual(body)
   })
 
-  test('rejects with BackendServerError on a 5xx response', async () => {
+  test('rejects with a server-problem message on a 5xx response', async () => {
     fakeResponse(503, {})
 
     await expect(
       getDashboardResults(INSTANCE_URL, ACCESS_TOKEN, CONTENT_ID)
-    ).rejects.toBeInstanceOf(BackendServerError)
+    ).rejects.toThrow("Salesforce's API had a problem (503).")
   })
 
-  test('rejects with BackendServerError on a 429 response', async () => {
+  test('rejects with a server-problem message on a 429 response', async () => {
     fakeResponse(429, {})
 
     await expect(
       getDashboardResults(INSTANCE_URL, ACCESS_TOKEN, CONTENT_ID)
-    ).rejects.toBeInstanceOf(BackendServerError)
+    ).rejects.toThrow("Salesforce's API had a problem (429).")
   })
 
-  test('rejects with BackendServerError when the network request itself fails', async () => {
+  test('rejects with an unreachable message when the network request itself fails', async () => {
     stubFetch(async () => {
       throw new TypeError('Failed to fetch')
     })
 
     await expect(
       getDashboardResults(INSTANCE_URL, ACCESS_TOKEN, CONTENT_ID)
-    ).rejects.toBeInstanceOf(BackendServerError)
+    ).rejects.toThrow('Salesforce could not be reached')
   })
 
   test('rejects with AuthError on a 401 response', async () => {
@@ -115,30 +114,30 @@ describe('getReportResults', () => {
     expect(result).toEqual(body)
   })
 
-  test('rejects with BackendServerError on a 5xx response', async () => {
+  test('rejects with a server-problem message on a 5xx response', async () => {
     fakeResponse(500, {})
 
     await expect(
       getReportResults(INSTANCE_URL, ACCESS_TOKEN, CONTENT_ID)
-    ).rejects.toBeInstanceOf(BackendServerError)
+    ).rejects.toThrow("Salesforce's API had a problem (500).")
   })
 
-  test('rejects with BackendServerError on a 429 response', async () => {
+  test('rejects with a server-problem message on a 429 response', async () => {
     fakeResponse(429, {})
 
     await expect(
       getReportResults(INSTANCE_URL, ACCESS_TOKEN, CONTENT_ID)
-    ).rejects.toBeInstanceOf(BackendServerError)
+    ).rejects.toThrow("Salesforce's API had a problem (429).")
   })
 
-  test('rejects with BackendServerError when the network request itself fails', async () => {
+  test('rejects with an unreachable message when the network request itself fails', async () => {
     stubFetch(async () => {
       throw new TypeError('Failed to fetch')
     })
 
     await expect(
       getReportResults(INSTANCE_URL, ACCESS_TOKEN, CONTENT_ID)
-    ).rejects.toBeInstanceOf(BackendServerError)
+    ).rejects.toThrow('Salesforce could not be reached')
   })
 
   test('rejects with AuthError on a 401 response', async () => {
