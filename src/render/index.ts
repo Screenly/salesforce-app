@@ -126,7 +126,7 @@ function renderDashboardComponents(
   }
 }
 
-export function renderDashboard(
+function renderDashboard(
   results: DashboardResults,
   showLabels: boolean = false
 ): void {
@@ -138,7 +138,7 @@ export function renderDashboard(
   renderDashboardComponents(chartsGrid, results, showLabels)
 }
 
-export function renderReport(
+function renderReport(
   contentId: string,
   reportResult: ReportResult,
   showLabels: boolean = false
@@ -159,7 +159,31 @@ export function renderReport(
   )
 }
 
-export function showDashboardContainer(): void {
+function showDashboardContainer(): void {
   const el = document.getElementById('dashboard-container')
   if (el) el.style.display = 'flex'
+}
+
+export type ContentToRender =
+  | {
+      contentType: 'dashboard'
+      contentId: string
+      results: DashboardResults
+      showLabels: boolean
+    }
+  | {
+      contentType: 'report'
+      contentId: string
+      results: ReportResult
+      showLabels: boolean
+    }
+
+export function showContent(content: ContentToRender): void {
+  if (content.contentType === 'dashboard') {
+    renderDashboard(content.results, content.showLabels)
+  } else {
+    renderReport(content.contentId, content.results, content.showLabels)
+  }
+
+  showDashboardContainer()
 }
