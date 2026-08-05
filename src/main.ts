@@ -7,8 +7,11 @@ import {
   signalReady,
 } from '@screenly/edge-apps'
 import { setupSentry } from '@screenly/edge-apps/utils'
-import { inferSalesforceContentType, render } from './content'
-import type { RenderContext } from './content'
+import {
+  inferSalesforceContentType,
+  render,
+  type RenderContext,
+} from './content'
 import { createCredentialManager } from './credentials'
 
 setupSentry('salesforce', {
