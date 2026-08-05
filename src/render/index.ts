@@ -159,16 +159,7 @@ export function renderReport(
   )
 }
 
-export function showScreen(screenId: string): void {
-  const screens = ['dashboard-screen', 'error-screen']
-  screens.forEach((id) => {
-    const el = document.getElementById(id)
-    if (el) el.style.display = id === screenId ? 'flex' : 'none'
-  })
-}
-
-export function showError(message: string): void {
-  showScreen('error-screen')
-  const el = document.getElementById('error-message')
-  if (el) el.textContent = message
+export function showDashboardContainer(): void {
+  const el = document.getElementById('dashboard-container')
+  if (el) el.style.display = 'flex'
 }

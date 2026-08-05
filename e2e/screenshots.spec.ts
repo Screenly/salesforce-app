@@ -12,6 +12,8 @@ import path from 'path'
 const MOCK_INSTANCE_URL = 'https://mock.salesforce.com'
 const MOCK_DASHBOARD_ID = '01Z000000000001AAA'
 const MOCK_REPORT_ID = '00O000000000001AAA'
+const MOCK_COORDINATES: [number, number] = [37.3861, -122.0839]
+const MOCK_LOCATION = 'Silicon Valley, USA'
 
 const MOCK_CREDENTIALS = {
   token: 'mock-access-token',
@@ -369,7 +371,7 @@ const MOCK_REPORT_RESPONSE = {
 
 const { screenlyJsContent: dashboardScreenlyJsContent } =
   createMockScreenlyForScreenshots(
-    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
     {
       content_id: MOCK_DASHBOARD_ID,
       refresh_interval: '300',
@@ -379,9 +381,21 @@ const { screenlyJsContent: dashboardScreenlyJsContent } =
     }
   )
 
+const { screenlyJsContent: errorScreenlyJsContent } =
+  createMockScreenlyForScreenshots(
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
+    {
+      content_id: MOCK_DASHBOARD_ID,
+      refresh_interval: '300',
+      display_errors: 'true',
+      screenly_oauth_tokens_url: 'http://localhost:3000/',
+      screenly_app_auth_token: 'mock-token',
+    }
+  )
+
 const { screenlyJsContent: reportScreenlyJsContent } =
   createMockScreenlyForScreenshots(
-    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
     {
       content_id: MOCK_REPORT_ID,
       refresh_interval: '300',
@@ -393,7 +407,7 @@ const { screenlyJsContent: reportScreenlyJsContent } =
 
 const { screenlyJsContent: dashboardLabelsScreenlyJsContent } =
   createMockScreenlyForScreenshots(
-    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
     {
       content_id: MOCK_DASHBOARD_ID,
       refresh_interval: '300',
@@ -406,7 +420,7 @@ const { screenlyJsContent: dashboardLabelsScreenlyJsContent } =
 
 const { screenlyJsContent: reportLabelsScreenlyJsContent } =
   createMockScreenlyForScreenshots(
-    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
     {
       content_id: MOCK_REPORT_ID,
       refresh_interval: '300',
@@ -508,7 +522,7 @@ for (const [width, height] of [
       width,
       height,
       `error-${width}x${height}.png`,
-      dashboardScreenlyJsContent,
+      errorScreenlyJsContent,
       (context) => setupDashboardRoutes(context, 401)
     )
   })
@@ -520,7 +534,7 @@ test('screenshot error-not-found 3840x2160', async ({ browser }) => {
     3840,
     2160,
     'error-not-found-3840x2160.png',
-    dashboardScreenlyJsContent,
+    errorScreenlyJsContent,
     (context) => setupDashboardRoutes(context, 404)
   )
 })
@@ -529,7 +543,9 @@ for (const [width, height] of [
   [1920, 1080],
   [1080, 1920],
 ]) {
-  test(`screenshot dashboard-labels ${width}x${height}`, async ({ browser }) => {
+  test(`screenshot dashboard-labels ${width}x${height}`, async ({
+    browser,
+  }) => {
     await takeScreenshot(
       browser,
       width,

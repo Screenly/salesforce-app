@@ -3,12 +3,10 @@ import {
   getDashboardResults,
   getReportResults,
   triggerDashboardRefresh,
-  AuthError,
 } from './api'
 import { readCachedContent, writeCachedContent } from './cache'
-import type { RefreshToken, RuntimeState } from './credentials'
-import { shouldSkipBackendError } from './errors'
-import { renderDashboard, renderReport, showScreen, showError } from './render'
+import type { RuntimeState } from './credentials'
+import { renderDashboard, renderReport, showDashboardContainer } from './render'
 import type {
   DashboardResults,
   ReportResult,
@@ -17,20 +15,10 @@ import type {
 
 export type RenderOutcome = 'shown' | 'skipped'
 
-export { shouldSkipBackendError } from './errors'
-
-export function shouldSignalReady(
-  outcome: RenderOutcome,
-  hasRenderedOnce: boolean
-): boolean {
-  return outcome === 'shown' && !hasRenderedOnce
-}
-
 export type RenderContext = {
   contentId: string
   contentType: SalesforceContentType
   getRuntimeState: () => RuntimeState
-  refreshToken: RefreshToken
   displayErrors: boolean
   showLabels: boolean
 }
@@ -80,42 +68,24 @@ function renderContentResults(
   renderReport(contentId, content.results, showLabels)
 }
 
-function handleError(message: string, displayErrors: boolean): void {
-  if (displayErrors) throw new Error(message)
-  showError(message)
-}
-
 function toErrorMessage(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback
 }
 
-function reportContentRenderError(ctx: RenderContext, err: unknown): void {
-  reportError(err, {
-    source: 'salesforce-content',
-    contentId: ctx.contentId,
-    contentType: ctx.contentType,
-  })
-}
-
-function showContentFailure(ctx: RenderContext, err: unknown): RenderOutcome {
-  handleError(toErrorMessage(err, 'Failed to load content.'), ctx.displayErrors)
-  return 'shown'
-}
-
 async function attemptRenderContent(
-  ctx: RenderContext,
+  context: RenderContext,
   accessToken: string,
   instanceUrl: string
 ): Promise<RenderAttempt> {
   try {
     const content = await fetchContentResults(
-      ctx.contentType,
+      context.contentType,
       instanceUrl,
       accessToken,
-      ctx.contentId
+      context.contentId
     )
-    writeCachedContent(ctx.contentType, ctx.contentId, content.results)
-    renderContentResults(ctx.contentId, content, ctx.showLabels)
+    writeCachedContent(context.contentType, context.contentId, content.results)
+    renderContentResults(context.contentId, content, context.showLabels)
     return { ok: true, outcome: 'shown' }
   } catch (err) {
     return { ok: false, error: err }
@@ -131,119 +101,63 @@ function buildContentResults(
     : { contentType: 'report', results: results as ReportResult }
 }
 
-function renderCachedContent(ctx: RenderContext): RenderOutcome | null {
-  const cached = readCachedContent(ctx.contentType, ctx.contentId)
-  if (!cached) return null
+function renderCachedContent(context: RenderContext): void {
+  const cached = readCachedContent(context.contentType, context.contentId)
 
-  try {
-    renderContentResults(
-      ctx.contentId,
-      buildContentResults(ctx.contentType, cached),
-      ctx.showLabels
-    )
-  } catch {
-    return null
+  if (!cached) {
+    throw new Error('No cached content found.')
   }
 
-  showScreen('dashboard-screen')
-  return 'shown'
+  renderContentResults(
+    context.contentId,
+    buildContentResults(context.contentType, cached),
+    context.showLabels
+  )
+
+  showDashboardContainer()
 }
 
-function handleContentFailure(ctx: RenderContext, err: unknown): RenderOutcome {
-  if (!shouldSkipBackendError(err, ctx.displayErrors)) {
-    return showContentFailure(ctx, err)
+function handleContentFailure(context: RenderContext, err: unknown): void {
+  if (context.displayErrors) {
+    throw new Error(toErrorMessage(err, 'Failed to load content.'))
   }
-  return renderCachedContent(ctx) ?? 'skipped'
+  renderCachedContent(context)
 }
 
-function requireCredentials(ctx: RenderContext): CredentialsResult {
-  const { accessToken, instanceUrl, credentialError } = ctx.getRuntimeState()
+function requireCredentials(context: RenderContext): CredentialsResult {
+  const { accessToken, instanceUrl, credentialError } =
+    context.getRuntimeState()
 
   if (accessToken && instanceUrl) {
     return { ok: true, accessToken, instanceUrl }
   }
 
-  if (shouldSkipBackendError(credentialError, ctx.displayErrors)) {
+  if (!context.displayErrors) {
     return { ok: false, outcome: 'skipped' }
   }
 
-  handleError(credentialError!.message, ctx.displayErrors)
-  return { ok: false, outcome: 'shown' }
+  throw new Error(credentialError!.message)
 }
 
-function requireRefreshedCredentials(ctx: RenderContext): CredentialsResult {
-  const { accessToken, instanceUrl } = ctx.getRuntimeState()
-
-  if (!accessToken) {
-    handleError('No access token.', ctx.displayErrors)
-    return { ok: false, outcome: 'shown' }
-  }
-  if (!instanceUrl) {
-    handleError('No instance URL available.', ctx.displayErrors)
-    return { ok: false, outcome: 'shown' }
-  }
-
-  return { ok: true, accessToken, instanceUrl }
-}
-
-async function refreshCredentials(
-  ctx: RenderContext
-): Promise<RenderOutcome | null> {
-  try {
-    await ctx.refreshToken()
-    return null
-  } catch (err) {
-    if (!shouldSkipBackendError(err, ctx.displayErrors)) {
-      handleError(
-        toErrorMessage(err, 'Session expired. Please re-authenticate.'),
-        ctx.displayErrors
-      )
-      return 'shown'
-    }
-
-    // A skippable error may still have recovered credentials from cache
-    // (see credentials.ts's applyFailedRefresh), in which case the retry
-    // should proceed to render instead of aborting.
-    const { accessToken, instanceUrl } = ctx.getRuntimeState()
-    return accessToken && instanceUrl ? null : 'skipped'
-  }
-}
-
-async function resolveCredentials(
-  ctx: RenderContext,
-  isRetry: boolean
-): Promise<CredentialsResult> {
-  if (!isRetry) return requireCredentials(ctx)
-
-  const refreshOutcome = await refreshCredentials(ctx)
-  if (refreshOutcome) return { ok: false, outcome: refreshOutcome }
-
-  return requireRefreshedCredentials(ctx)
-}
-
-export async function render(
-  ctx: RenderContext,
-  isRetry = false
-): Promise<RenderOutcome> {
-  const credentials = await resolveCredentials(ctx, isRetry)
-  if (!credentials.ok) return credentials.outcome
+export async function render(context: RenderContext): Promise<void> {
+  const credentials = requireCredentials(context)
+  if (!credentials.ok) return
 
   const attempt = await attemptRenderContent(
-    ctx,
+    context,
     credentials.accessToken,
     credentials.instanceUrl
   )
+
   if (attempt.ok) {
-    showScreen('dashboard-screen')
-    return attempt.outcome
+    showDashboardContainer()
+    return
   }
 
-  if (!(attempt.error instanceof AuthError)) {
-    reportContentRenderError(ctx, attempt.error)
-    return handleContentFailure(ctx, attempt.error)
-  }
-
-  if (!isRetry) return render(ctx, true)
-
-  return handleContentFailure(ctx, attempt.error)
+  reportError(attempt.error, {
+    source: 'salesforce-content',
+    contentId: context.contentId,
+    contentType: context.contentType,
+  })
+  handleContentFailure(context, attempt.error)
 }

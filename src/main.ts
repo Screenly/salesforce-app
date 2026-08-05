@@ -9,10 +9,8 @@ import {
 import { setupSentry } from '@screenly/edge-apps/utils'
 import { inferSalesforceContentType } from './content'
 import { createCredentialManager } from './credentials'
-import { showError } from './render'
-import { render, shouldSignalReady } from './render-orchestrator'
+import { render } from './render-orchestrator'
 import type { RenderContext } from './render-orchestrator'
-import type { SalesforceContentType } from './types'
 
 setupSentry('salesforce', {
   salesforce: { content_id: screenly.settings.content_id },
@@ -28,20 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const showLabels =
     getSettingWithDefault<string>('show_labels', 'false') === 'true'
 
-  if (!contentId) {
-    showError('Please configure the Salesforce Content ID in settings.')
-    signalReady()
-    return
-  }
-
-  let contentType: SalesforceContentType
-  try {
-    contentType = inferSalesforceContentType(contentId)
-  } catch (err) {
-    showError(err instanceof Error ? err.message : 'Unsupported content ID.')
-    signalReady()
-    return
-  }
+  const contentType = inferSalesforceContentType(contentId)
 
   const { refreshToken, getRuntimeState } = createCredentialManager(
     contentId,
@@ -49,37 +34,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     displayErrors
   )
 
-  try {
-    await refreshToken()
-  } catch (err) {
-    console.warn('Failed to fetch initial credentials:', err)
-  }
+  await refreshToken()
 
   initTokenRefreshLoop(refreshToken)
 
-  const ctx: RenderContext = {
+  const context: RenderContext = {
     contentId,
     contentType,
     getRuntimeState,
-    refreshToken,
     displayErrors,
     showLabels,
   }
 
-  let hasRenderedOnce = false
-  const run = async () => {
-    const outcome = await render(ctx)
-    if (shouldSignalReady(outcome, hasRenderedOnce)) signalReady()
-    hasRenderedOnce = hasRenderedOnce || outcome === 'shown'
-  }
+  await render(context)
 
-  await run()
+  signalReady()
 
   setInterval(async () => {
-    try {
-      await run()
-    } catch (err) {
-      console.error('Refresh failed:', err)
-    }
+    await render(context)
   }, refreshInterval * 1000)
 })

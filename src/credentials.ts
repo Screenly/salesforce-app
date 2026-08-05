@@ -1,7 +1,6 @@
 import { getSettingWithDefault } from '@screenly/edge-apps'
 import { reportError } from '@screenly/edge-apps/utils'
 import { readCachedCredentials, writeCachedCredentials } from './cache'
-import { BackendServerError, shouldSkipBackendError } from './errors'
 import type { SalesforceContentType } from './types'
 
 export type RefreshToken = () => Promise<void>
@@ -10,8 +9,6 @@ export type RuntimeState = {
   instanceUrl: string | null
   credentialError: Error | null
 }
-
-export { BackendServerError } from './errors'
 
 export const NO_CREDENTIALS_MESSAGE =
   'No access token or instance URL available.'
@@ -34,8 +31,9 @@ async function requestCredentials(): Promise<Response> {
       }
     )
   } catch (err) {
-    throw new BackendServerError(
-      `Screenly's server could not be reached (${err instanceof Error ? err.message : String(err)}).`
+    throw new Error(
+      `Screenly's server could not be reached (${err instanceof Error ? err.message : String(err)}).`,
+      { cause: err }
     )
   }
 }
@@ -45,9 +43,7 @@ async function parseCredentialsResponse(response: Response): Promise<{
   metadata?: { instance_url?: string }
 }> {
   if (response.status >= 500 || response.status === 429) {
-    throw new BackendServerError(
-      `Screenly's server had a problem (${response.status}).`
-    )
+    throw new Error(`Screenly's server had a problem (${response.status}).`)
   }
 
   const body = (await response.json().catch(() => undefined)) as
@@ -112,10 +108,7 @@ export function createCredentialManager(
 
     state.credentialError = error
 
-    // Cache reads are gated on `!state.instanceUrl` so a manager that has
-    // already recovered credentials (live or cached) never overwrites them
-    // with a possibly-stale cache entry on a later failed refresh.
-    if (state.instanceUrl || !shouldSkipBackendError(error, displayErrors)) {
+    if (state.instanceUrl || displayErrors) {
       return error
     }
 
