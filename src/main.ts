@@ -25,10 +25,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const showLabels =
     getSettingWithDefault<string>('show_labels', 'false') === 'true'
 
-  const contentType = inferSalesforceContentType(contentId)
+  const contentType = inferSalesforceContentType()
 
   const { refreshToken, getRuntimeState } = createCredentialManager(
-    contentId,
     contentType,
     displayErrors
   )

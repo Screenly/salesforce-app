@@ -1,6 +1,6 @@
-import { describe, test, expect, mock, beforeEach } from 'bun:test'
-
-mock.module('@screenly/edge-apps/utils', () => ({ reportError: () => {} }))
+import '@screenly/edge-apps/test'
+import { describe, test, expect, mock, beforeEach, afterEach } from 'bun:test'
+import { setupScreenlyMock, resetScreenlyMock } from '@screenly/edge-apps/test'
 
 const readCachedContent = mock(() => null as unknown)
 const writeCachedContent = mock(() => {})
@@ -29,21 +29,29 @@ mock.module('./render', () => ({
 
 const { render, inferSalesforceContentType } = await import('./content')
 
+afterEach(() => {
+  resetScreenlyMock()
+})
+
 describe('inferSalesforceContentType', () => {
   test('returns dashboard for 01Z prefix', () => {
-    expect(inferSalesforceContentType('01Zg5000002iDwTEAU')).toBe('dashboard')
+    setupScreenlyMock({}, { content_id: '01Zg5000002iDwTEAU' })
+    expect(inferSalesforceContentType()).toBe('dashboard')
   })
 
   test('returns report for 00O prefix', () => {
-    expect(inferSalesforceContentType('00Og5000004NOlhEAG')).toBe('report')
+    setupScreenlyMock({}, { content_id: '00Og5000004NOlhEAG' })
+    expect(inferSalesforceContentType()).toBe('report')
   })
 
   test('is case-insensitive', () => {
-    expect(inferSalesforceContentType('01zg5000002iDwTEAU')).toBe('dashboard')
+    setupScreenlyMock({}, { content_id: '01zg5000002iDwTEAU' })
+    expect(inferSalesforceContentType()).toBe('dashboard')
   })
 
   test('throws for unsupported prefix', () => {
-    expect(() => inferSalesforceContentType('ABC123')).toThrow()
+    setupScreenlyMock({}, { content_id: 'ABC123' })
+    expect(() => inferSalesforceContentType()).toThrow()
   })
 })
 

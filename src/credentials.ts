@@ -1,5 +1,4 @@
-import { getSettingWithDefault } from '@screenly/edge-apps'
-import { reportError } from '@screenly/edge-apps/utils'
+import { getSettingWithDefault, reportError } from '@screenly/edge-apps/utils'
 import { readCachedCredentials, writeCachedCredentials } from './cache'
 import type { SalesforceContentType } from './types'
 
@@ -75,10 +74,10 @@ type CredentialManagerState = RuntimeState & {
 }
 
 export function createCredentialManager(
-  contentId: string,
   contentType: SalesforceContentType,
   displayErrors: boolean
 ): { refreshToken: RefreshToken; getRuntimeState: () => RuntimeState } {
+  const contentId = getSettingWithDefault('content_id', '')
   const state: CredentialManagerState = {
     accessToken: getSettingWithDefault('access_token', '') || null,
     instanceUrl: null,

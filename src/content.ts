@@ -1,4 +1,4 @@
-import { reportError } from '@screenly/edge-apps/utils'
+import { reportError, getSettingWithDefault } from '@screenly/edge-apps/utils'
 import {
   getDashboardResults,
   getReportResults,
@@ -17,9 +17,8 @@ const DASHBOARD_PREFIX = '01Z'
 const REPORT_PREFIX = '00O'
 
 // https://help.salesforce.com/s/articleView?id=000386286&type=1
-export function inferSalesforceContentType(
-  contentId: string
-): SalesforceContentType {
+export function inferSalesforceContentType(): SalesforceContentType {
+  const contentId = getSettingWithDefault<string>('content_id', '')
   const normalizedId = contentId.trim().toUpperCase()
   const prefix = normalizedId.slice(0, 3)
 

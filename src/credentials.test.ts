@@ -1,12 +1,17 @@
-import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test'
+import '@screenly/edge-apps/test'
+import {
+  describe,
+  test,
+  expect,
+  beforeEach,
+  afterEach,
+  mock,
+  spyOn,
+} from 'bun:test'
+import { setupScreenlyMock, resetScreenlyMock } from '@screenly/edge-apps/test'
+import * as utils from '@screenly/edge-apps/utils'
 
-mock.module('@screenly/edge-apps', () => ({
-  getSettingWithDefault: (_key: string, defaultValue: unknown) => defaultValue,
-  getCorsProxyUrl: () => 'https://cors-proxy.example.com',
-}))
-
-const reportError = mock(() => {})
-mock.module('@screenly/edge-apps/utils', () => ({ reportError }))
+const reportError = spyOn(utils, 'reportError').mockImplementation(() => {})
 
 const readCachedCredentials = mock(
   () => null as { accessToken: string; instanceUrl: string } | null
@@ -24,7 +29,7 @@ const CONTENT_ID = '01Zg5000002iDwTEAU'
 const CONTENT_TYPE = 'dashboard'
 
 function makeManager(displayErrors = false) {
-  return createCredentialManager(CONTENT_ID, CONTENT_TYPE, displayErrors)
+  return createCredentialManager(CONTENT_TYPE, displayErrors)
 }
 
 function stubFetch(impl: () => Promise<unknown>) {
@@ -57,12 +62,14 @@ function failWithNetworkError(message: string) {
 const originalFetch = globalThis.fetch
 
 beforeEach(() => {
-  ;(globalThis as Record<string, unknown>).screenly = {
-    settings: {
+  setupScreenlyMock(
+    {},
+    {
+      content_id: CONTENT_ID,
       screenly_oauth_tokens_url: 'https://api.example.com/oauth/',
       screenly_app_auth_token: 'app-auth',
-    },
-  }
+    }
+  )
   reportError.mockClear()
   readCachedCredentials.mockClear()
   readCachedCredentials.mockReturnValue(null)
@@ -71,7 +78,7 @@ beforeEach(() => {
 
 afterEach(() => {
   globalThis.fetch = originalFetch
-  delete (globalThis as Record<string, unknown>).screenly
+  resetScreenlyMock()
 })
 
 describe('success', () => {
