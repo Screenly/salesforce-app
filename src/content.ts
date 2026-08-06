@@ -30,7 +30,7 @@ export function inferSalesforceContentType(): SalesforceContentType {
   )
 }
 
-export type RenderContext = {
+type RenderContext = {
   contentId: string
   contentType: SalesforceContentType
   runtimeState: RuntimeState
@@ -114,7 +114,19 @@ function requireCredentials(context: RenderContext): CredentialsResult {
   throw new Error(credentialError!.message)
 }
 
-export async function refreshContent(context: RenderContext): Promise<void> {
+export async function refresh(
+  getRuntimeState: () => RuntimeState
+): Promise<void> {
+  const context: RenderContext = {
+    contentId: getSettingWithDefault<string>('content_id', ''),
+    contentType: inferSalesforceContentType(),
+    runtimeState: getRuntimeState(),
+    displayErrors:
+      getSettingWithDefault<string>('display_errors', 'false') === 'true',
+    showLabels:
+      getSettingWithDefault<string>('show_labels', 'false') === 'true',
+  }
+
   const credentials = requireCredentials(context)
   if (!credentials.ok) return
 

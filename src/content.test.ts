@@ -27,7 +27,7 @@ mock.module('./templates', () => ({
   renderContent,
 }))
 
-const { refreshContent, inferSalesforceContentType } = await import('./content')
+const { refresh, inferSalesforceContentType } = await import('./content')
 
 afterEach(() => {
   resetScreenlyMock()
@@ -60,24 +60,16 @@ const CONTENT_TYPE = 'dashboard'
 const ACCESS_TOKEN = 'abc'
 const INSTANCE_URL = 'https://na1.salesforce.com'
 
-function makeContext(
-  overrides: Partial<Parameters<typeof refreshContent>[0]> = {}
-) {
+function getRuntimeState() {
   return {
-    contentId: CONTENT_ID,
-    contentType: CONTENT_TYPE,
-    runtimeState: {
-      accessToken: ACCESS_TOKEN,
-      instanceUrl: INSTANCE_URL,
-      credentialError: null,
-    },
-    displayErrors: false,
-    showLabels: false,
-    ...overrides,
+    accessToken: ACCESS_TOKEN,
+    instanceUrl: INSTANCE_URL,
+    credentialError: null,
   }
 }
 
 beforeEach(() => {
+  setupScreenlyMock({}, { content_id: CONTENT_ID })
   readCachedContent.mockClear()
   readCachedContent.mockReturnValue(null)
   writeCachedContent.mockClear()
@@ -89,9 +81,7 @@ beforeEach(() => {
 
 describe('render success', () => {
   test('renders live content and writes it to cache on success', async () => {
-    const context = makeContext()
-
-    await refreshContent(context)
+    await refresh(getRuntimeState)
 
     expect(writeCachedContent).toHaveBeenCalledWith(
       CONTENT_TYPE,
@@ -110,9 +100,8 @@ describe('render content failover', () => {
       throw new Error('down')
     })
     readCachedContent.mockReturnValue(null)
-    const context = makeContext({ displayErrors: false })
 
-    await expect(refreshContent(context)).rejects.toThrow(
+    await expect(refresh(getRuntimeState)).rejects.toThrow(
       'No cached content found.'
     )
 
@@ -120,6 +109,7 @@ describe('render content failover', () => {
   })
 
   test('shows the error instead of using the cache when display_errors is on', async () => {
+    setupScreenlyMock({}, { content_id: CONTENT_ID, display_errors: 'true' })
     getDashboardResults.mockImplementationOnce(async () => {
       throw new Error('down')
     })
@@ -127,9 +117,8 @@ describe('render content failover', () => {
       dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },
       componentData: [],
     })
-    const context = makeContext({ displayErrors: true })
 
-    await expect(refreshContent(context)).rejects.toThrow('down')
+    await expect(refresh(getRuntimeState)).rejects.toThrow('down')
 
     expect(readCachedContent).not.toHaveBeenCalled()
   })
@@ -142,9 +131,8 @@ describe('render content failover', () => {
       dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },
       componentData: [],
     })
-    const context = makeContext({ displayErrors: false })
 
-    await refreshContent(context)
+    await refresh(getRuntimeState)
 
     expect(renderContent).toHaveBeenCalledWith(
       expect.objectContaining({ contentType: 'dashboard' })
