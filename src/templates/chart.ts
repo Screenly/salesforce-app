@@ -6,9 +6,8 @@ import {
   buildScalesConfig,
   CHART_COLORS,
   extractChartData,
-  mapChartType,
-  normalizeChartType,
 } from './chart.lib'
+import type { ChartKind } from './chart.types'
 import { mountEmpty } from './empty'
 
 Chart.register(...registerables, ChartDataLabels)
@@ -19,7 +18,7 @@ export function mountChart(
   container: HTMLElement,
   componentId: string,
   reportResult: ReportResult,
-  sfType: string,
+  chartKind: ChartKind,
   title: string,
   showLabels: boolean = false
 ): void {
@@ -30,16 +29,14 @@ export function mountChart(
     return
   }
 
-  const chartType = mapChartType(sfType)
-  const normalizedType = normalizeChartType(sfType)
-  const isHorizontalBar =
-    normalizedType === 'bar' || normalizedType === 'horizontal bar'
+  const isHorizontalBar = chartKind === 'horizontalBar'
+  const chartJsType = chartKind === 'horizontalBar' ? 'bar' : chartKind
   const canvas = document.createElement('canvas')
   canvas.id = `chart-${componentId}`
   container.appendChild(canvas)
 
   new Chart(canvas, {
-    type: chartType,
+    type: chartJsType,
     data: {
       labels,
       datasets: [
@@ -47,9 +44,9 @@ export function mountChart(
           label: title,
           data: values,
           backgroundColor: CHART_COLORS,
-          borderColor: chartType === 'line' ? CHART_COLORS[0] : CHART_COLORS,
-          borderWidth: chartType === 'line' ? 2 : 1,
-          fill: chartType === 'line' ? false : undefined,
+          borderColor: chartKind === 'line' ? CHART_COLORS[0] : CHART_COLORS,
+          borderWidth: chartKind === 'line' ? 2 : 1,
+          fill: chartKind === 'line' ? false : undefined,
         },
       ],
     },
@@ -60,10 +57,10 @@ export function mountChart(
       plugins: {
         legend: { labels: { color: '#ffffff' } },
         datalabels: showLabels
-          ? buildDatalabelsConfig(chartType)
+          ? buildDatalabelsConfig(chartKind)
           : { display: false },
       },
-      scales: buildScalesConfig(chartType),
+      scales: buildScalesConfig(chartKind),
     },
   })
 }

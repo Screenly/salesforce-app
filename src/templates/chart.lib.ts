@@ -4,7 +4,6 @@ import type { ChartData, ChartKind } from './chart.types'
 export const CHART_TYPES = new Set([
   'bar',
   'column',
-  'horizontal bar',
   'line',
   'pie',
   'donut',
@@ -22,23 +21,25 @@ export const CHART_COLORS = [
   '#54A0FF',
 ]
 
-export function normalizeChartType(sfType: string): string {
-  return sfType.trim().toLowerCase()
+const VISUALIZATION_TYPE_TO_CHART_KIND: Record<string, ChartKind> = {
+  donut: 'doughnut',
+  bar: 'horizontalBar',
+  column: 'bar',
+  line: 'line',
+  pie: 'pie',
 }
 
-export function mapChartType(sfType: string): ChartKind {
-  const t = normalizeChartType(sfType)
-  if (t === 'donut') return 'doughnut'
-  if (t === 'bar' || t === 'column' || t === 'horizontal bar') return 'bar'
-  if (t === 'line') return 'line'
-  if (t === 'pie') return 'pie'
-  return 'bar'
+export function mapChartType(visualizationType: string): ChartKind {
+  const normalizedVisualizationType = visualizationType.trim().toLowerCase()
+  return VISUALIZATION_TYPE_TO_CHART_KIND[normalizedVisualizationType] ?? 'bar'
 }
 
 export function extractChartData(reportResult: ReportResult): ChartData {
   const factMap = reportResult.factMap ?? {}
   const groupings = reportResult.groupingsDown?.groupings ?? []
-  const groupingMap = new Map(groupings.map((g) => [g.key, g.label]))
+  const groupingMap = new Map(
+    groupings.map((grouping) => [grouping.key, grouping.label])
+  )
   const labels: string[] = []
   const values: number[] = []
 
@@ -60,7 +61,7 @@ export function buildDatalabelsConfig(chartType: ChartKind) {
     font: { weight: 'bold' as const, size: 20 },
     formatter: (value: number) => (value === 0 ? '' : value.toLocaleString()),
   }
-  if (chartType === 'bar') {
+  if (chartType === 'bar' || chartType === 'horizontalBar') {
     return {
       ...base,
       anchor: 'end' as const,
@@ -83,7 +84,8 @@ export function buildDatalabelsConfig(chartType: ChartKind) {
 }
 
 export function buildScalesConfig(chartType: ChartKind) {
-  if (chartType !== 'bar' && chartType !== 'line') return undefined
+  if (!(['bar', 'horizontalBar', 'line'] as ChartKind[]).includes(chartType))
+    return undefined
   const axis = { ticks: { color: '#ffffff' }, grid: { color: '#ffffff22' } }
   return { x: axis, y: axis }
 }

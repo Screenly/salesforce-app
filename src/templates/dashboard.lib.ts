@@ -6,7 +6,7 @@ import type {
   DashboardResults,
 } from '../types'
 import type { Card } from './card.types'
-import { CHART_TYPES } from './chart.lib'
+import { CHART_TYPES, mapChartType } from './chart.lib'
 import { mountChart } from './chart'
 import { mountEmpty } from './empty'
 import { mountGauge } from './gauge'
@@ -18,7 +18,11 @@ export function countUsedColumns(
   layoutComponents: DashboardLayoutComponent[]
 ): number {
   if (layoutComponents.length > 0) {
-    return Math.max(...layoutComponents.map((c) => c.column + c.colspan))
+    return Math.max(
+      ...layoutComponents.map(
+        (component) => component.column + component.colspan
+      )
+    )
   }
   return layout?.numColumns ?? 12
 }
@@ -34,20 +38,21 @@ function drawDashboardComponent(
     return
   }
 
-  const sfType = meta.properties.visualizationType ?? ''
-  const sfTypeLower = sfType.toLowerCase()
+  const visualizationType = (meta.properties.visualizationType ?? '')
+    .trim()
+    .toLowerCase()
   const title = meta.header ?? meta.title ?? ''
 
-  if (sfTypeLower === 'gauge') {
+  if (visualizationType === 'gauge') {
     mountGauge(container, item.componentId, item.reportResult, meta, showLabels)
-  } else if (sfTypeLower === 'metric') {
+  } else if (visualizationType === 'metric') {
     mountMetric(container, item.reportResult)
-  } else if (CHART_TYPES.has(sfTypeLower)) {
+  } else if (CHART_TYPES.has(visualizationType)) {
     mountChart(
       container,
       item.componentId,
       item.reportResult,
-      sfType,
+      mapChartType(visualizationType),
       title,
       showLabels
     )
@@ -70,7 +75,9 @@ export function buildDashboardCards(
 ): Card[] {
   const layoutComponents = results.dashboardMetadata.layout?.components ?? []
   const metaComponents = results.dashboardMetadata.components
-  const metaMap = new Map(metaComponents.map((c) => [c.id, c]))
+  const metaMap = new Map(
+    metaComponents.map((component) => [component.id, component])
+  )
 
   return results.componentData
     .filter((item): item is ComponentDataItem => item !== null)

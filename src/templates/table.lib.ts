@@ -12,7 +12,7 @@ export function extractTableColumns(
 
   const detailColumns =
     reportResult.reportMetadata?.detailColumns ??
-    vizTableColumns.map((c) => c.column)
+    vizTableColumns.map((tableColumn) => tableColumn.column)
 
   const columnInfo = reportResult.reportExtendedMetadata?.detailColumnInfo ?? {}
 

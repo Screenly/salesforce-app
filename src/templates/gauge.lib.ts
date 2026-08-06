@@ -2,38 +2,40 @@ import { Chart, type ArcElement } from 'chart.js'
 import type { GaugeBreak } from '../types'
 
 export function drawGaugeNeedle(
-  ctx: CanvasRenderingContext2D,
+  context: CanvasRenderingContext2D,
   cx: number,
   cy: number,
-  outerR: number,
-  pct: number
+  outerRadius: number,
+  percent: number
 ): void {
-  const safePct = Number.isFinite(pct) ? Math.max(0, Math.min(1, pct)) : 0
-  const angle = Math.PI + safePct * Math.PI
-  ctx.save()
-  ctx.beginPath()
-  ctx.moveTo(cx, cy)
-  ctx.lineTo(
-    cx + outerR * 0.75 * Math.cos(angle),
-    cy + outerR * 0.75 * Math.sin(angle)
+  const safePercent = Number.isFinite(percent)
+    ? Math.max(0, Math.min(1, percent))
+    : 0
+  const angle = Math.PI + safePercent * Math.PI
+  context.save()
+  context.beginPath()
+  context.moveTo(cx, cy)
+  context.lineTo(
+    cx + outerRadius * 0.75 * Math.cos(angle),
+    cy + outerRadius * 0.75 * Math.sin(angle)
   )
-  ctx.strokeStyle = '#ffffff'
-  ctx.lineWidth = Math.max(2, outerR * 0.025)
-  ctx.lineCap = 'round'
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(cx, cy, outerR * 0.06, 0, 2 * Math.PI)
-  ctx.fillStyle = '#ffffff'
-  ctx.fill()
-  ctx.restore()
+  context.strokeStyle = '#ffffff'
+  context.lineWidth = Math.max(2, outerRadius * 0.025)
+  context.lineCap = 'round'
+  context.stroke()
+  context.beginPath()
+  context.arc(cx, cy, outerRadius * 0.06, 0, 2 * Math.PI)
+  context.fillStyle = '#ffffff'
+  context.fill()
+  context.restore()
 }
 
 export function drawGaugeBreakLabels(
-  ctx: CanvasRenderingContext2D,
+  context: CanvasRenderingContext2D,
   cx: number,
   cy: number,
-  outerR: number,
-  innerR: number,
+  outerRadius: number,
+  innerRadius: number,
   min: number,
   max: number,
   breaks: GaugeBreak[]
@@ -41,25 +43,25 @@ export function drawGaugeBreakLabels(
   const range = max - min
   if (range <= 0) return
 
-  const labelR = (outerR + innerR) / 2
-  const fontSize = Math.max(13, Math.floor(outerR * 0.14))
-  ctx.save()
-  ctx.font = `bold ${fontSize}px sans-serif`
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
+  const labelRadius = (outerRadius + innerRadius) / 2
+  const fontSize = Math.max(13, Math.floor(outerRadius * 0.14))
+  context.save()
+  context.font = `bold ${fontSize}px sans-serif`
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
 
-  for (const b of breaks) {
-    const midVal = (b.lowerBound + b.upperBound) / 2
-    const pct = (midVal - min) / range
-    const angle = Math.PI + pct * Math.PI
-    const x = cx + labelR * Math.cos(angle)
-    const y = cy + labelR * Math.sin(angle)
+  for (const gaugeBreak of breaks) {
+    const midVal = (gaugeBreak.lowerBound + gaugeBreak.upperBound) / 2
+    const percent = (midVal - min) / range
+    const angle = Math.PI + percent * Math.PI
+    const x = cx + labelRadius * Math.cos(angle)
+    const y = cy + labelRadius * Math.sin(angle)
 
-    ctx.fillStyle = '#ffffff'
-    ctx.fillText(String(b.upperBound), x, y)
+    context.fillStyle = '#ffffff'
+    context.fillText(String(gaugeBreak.upperBound), x, y)
   }
 
-  ctx.restore()
+  context.restore()
 }
 
 export function buildNeedlePlugin(
@@ -67,18 +69,18 @@ export function buildNeedlePlugin(
   min: number,
   max: number,
   breaks: GaugeBreak[],
-  pct: number,
+  percent: number,
   showLabels: boolean
 ) {
   return {
     id: `gaugeNeedle-${componentId}`,
     afterDraw(chart: Chart) {
-      const { ctx } = chart
+      const { ctx: context } = chart
       const arcEl = chart.getDatasetMeta(0).data[0] as ArcElement
       if (!arcEl) return
       if (showLabels) {
         drawGaugeBreakLabels(
-          ctx,
+          context,
           arcEl.x,
           arcEl.y,
           arcEl.outerRadius,
@@ -88,7 +90,7 @@ export function buildNeedlePlugin(
           breaks
         )
       }
-      drawGaugeNeedle(ctx, arcEl.x, arcEl.y, arcEl.outerRadius, pct)
+      drawGaugeNeedle(context, arcEl.x, arcEl.y, arcEl.outerRadius, percent)
     },
   }
 }

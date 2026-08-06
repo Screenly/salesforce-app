@@ -31,7 +31,7 @@ export function mountGauge(
 
   const min = breaks[0].lowerBound
   const max = breaks[breaks.length - 1].upperBound
-  const pct = Math.max(0, Math.min(1, (value - min) / (max - min)))
+  const percent = Math.max(0, Math.min(1, (value - min) / (max - min)))
 
   const canvas = document.createElement('canvas')
   canvas.id = `chart-${componentId}`
@@ -42,7 +42,7 @@ export function mountGauge(
     min,
     max,
     breaks,
-    pct,
+    percent,
     showLabels
   )
 
@@ -51,8 +51,10 @@ export function mountGauge(
     data: {
       datasets: [
         {
-          data: breaks.map((b) => b.upperBound - b.lowerBound),
-          backgroundColor: breaks.map((b) => `#${b.color}`),
+          data: breaks.map(
+            (gaugeBreak) => gaugeBreak.upperBound - gaugeBreak.lowerBound
+          ),
+          backgroundColor: breaks.map((gaugeBreak) => `#${gaugeBreak.color}`),
           borderWidth: 0,
         },
       ],

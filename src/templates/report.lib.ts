@@ -2,6 +2,8 @@ import { createRef } from 'lit-html/directives/ref.js'
 import type { DashboardMetadataComponent, ReportResult } from '../types'
 import type { Card } from './card.types'
 import { mountChart } from './chart'
+import { mapChartType } from './chart.lib'
+import type { ChartKind } from './chart.types'
 import { mountEmpty } from './empty'
 import { mountStat } from './stat'
 import { mountTable } from './table'
@@ -36,7 +38,7 @@ export function reportChartCard(
   contentId: string,
   reportResult: ReportResult,
   reportName: string,
-  chartType: string,
+  chartKind: ChartKind,
   showLabels: boolean
 ): Card | null {
   if (!hasGroupedReportData(reportResult)) return null
@@ -52,7 +54,7 @@ export function reportChartCard(
         container,
         contentId,
         reportResult,
-        chartType,
+        chartKind,
         reportName,
         showLabels
       ),
@@ -124,7 +126,7 @@ export function buildReportCards(
       contentId,
       reportResult,
       reportName,
-      getReportChartType(reportResult) ?? 'Column',
+      mapChartType(getReportChartType(reportResult) ?? 'Column'),
       showLabels
     ),
     reportTableCard(contentId, reportResult, reportName),
