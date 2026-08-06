@@ -1,7 +1,14 @@
-import { getSettingWithDefault, reportError } from '@screenly/edge-apps/utils'
-import { readCachedCredentials, writeCachedCredentials } from './cache'
+import {
+  getSettingWithDefault,
+  readEdgeAppCache,
+  reportError,
+  writeEdgeAppCache,
+} from '@screenly/edge-apps/utils'
+
+export const CACHE_NAMESPACE = 'salesforce-edge-app:v1'
 
 export type RefreshToken = () => Promise<void>
+export type Credentials = { accessToken: string; instanceUrl: string }
 export type RuntimeState = {
   accessToken: string | null
   instanceUrl: string | null
@@ -78,7 +85,10 @@ function applySuccessfulRefresh(token: string, instanceUrl: string): void {
   state.accessToken = token
   state.instanceUrl = instanceUrl
   state.credentialError = null
-  writeCachedCredentials({ accessToken: token, instanceUrl })
+  writeEdgeAppCache(CACHE_NAMESPACE, 'credentials', {
+    accessToken: token,
+    instanceUrl,
+  })
 }
 
 function applyFailedRefresh(err: unknown): void {
@@ -92,7 +102,7 @@ function applyFailedRefresh(err: unknown): void {
     throw error
   }
 
-  const cached = readCachedCredentials()
+  const cached = readEdgeAppCache<Credentials>(CACHE_NAMESPACE, 'credentials')
   if (cached) {
     state.accessToken = cached.accessToken
     state.instanceUrl = cached.instanceUrl

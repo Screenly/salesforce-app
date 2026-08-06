@@ -12,15 +12,10 @@ import { setupScreenlyMock, resetScreenlyMock } from '@screenly/edge-apps/test'
 import * as utils from '@screenly/edge-apps/utils'
 
 const reportError = spyOn(utils, 'reportError').mockImplementation(() => {})
-
-const readCachedCredentials = mock(
-  () => null as { accessToken: string; instanceUrl: string } | null
+const readEdgeAppCache = spyOn(utils, 'readEdgeAppCache').mockReturnValue(null)
+const writeEdgeAppCache = spyOn(utils, 'writeEdgeAppCache').mockImplementation(
+  () => {}
 )
-const writeCachedCredentials = mock(() => {})
-mock.module('./cache', () => ({
-  readCachedCredentials,
-  writeCachedCredentials,
-}))
 
 const BASE_SETTINGS = {
   screenly_oauth_tokens_url: 'https://api.example.com/oauth/',
@@ -29,8 +24,12 @@ const BASE_SETTINGS = {
 
 setupScreenlyMock({}, BASE_SETTINGS)
 
-const { refreshToken, getRuntimeState, NO_CREDENTIALS_MESSAGE } =
-  await import('./credentials')
+const {
+  refreshToken,
+  getRuntimeState,
+  NO_CREDENTIALS_MESSAGE,
+  CACHE_NAMESPACE,
+} = await import('./credentials')
 
 function stubFetch(impl: () => Promise<unknown>) {
   const fetchMock = mock(impl)
@@ -64,9 +63,9 @@ const originalFetch = globalThis.fetch
 beforeEach(() => {
   setupScreenlyMock({}, BASE_SETTINGS)
   reportError.mockClear()
-  readCachedCredentials.mockClear()
-  readCachedCredentials.mockReturnValue(null)
-  writeCachedCredentials.mockClear()
+  readEdgeAppCache.mockClear()
+  readEdgeAppCache.mockReturnValue(null)
+  writeEdgeAppCache.mockClear()
 })
 
 afterEach(() => {
@@ -77,7 +76,7 @@ afterEach(() => {
 describe('credential caching before any successful refresh', () => {
   test('does not consult the cache when display_errors is on', async () => {
     setupScreenlyMock({}, { ...BASE_SETTINGS, display_errors: 'true' })
-    readCachedCredentials.mockReturnValue({
+    readEdgeAppCache.mockReturnValue({
       accessToken: 'cached-token',
       instanceUrl: 'https://cached.salesforce.com',
     })
@@ -87,27 +86,31 @@ describe('credential caching before any successful refresh', () => {
       "Screenly's server could not be reached"
     )
 
-    expect(readCachedCredentials).not.toHaveBeenCalled()
+    expect(readEdgeAppCache).not.toHaveBeenCalled()
     expect(getRuntimeState().accessToken).toBeNull()
     expect(getRuntimeState().instanceUrl).toBeNull()
   })
 
   test('repopulates from cache once, then stops re-reading once an instance url is set', async () => {
-    readCachedCredentials.mockReturnValue({
+    readEdgeAppCache.mockReturnValue({
       accessToken: 'cached-token',
       instanceUrl: 'https://cached.salesforce.com',
     })
     failWithNetworkError('network down')
 
     await refreshToken()
-    expect(readCachedCredentials).toHaveBeenCalledTimes(1)
+    expect(readEdgeAppCache).toHaveBeenCalledWith(
+      CACHE_NAMESPACE,
+      'credentials'
+    )
+    expect(readEdgeAppCache).toHaveBeenCalledTimes(1)
     expect(getRuntimeState().accessToken).toBe('cached-token')
     expect(getRuntimeState().instanceUrl).toBe('https://cached.salesforce.com')
 
     await expect(refreshToken()).rejects.toThrow(
       "Screenly's server could not be reached"
     )
-    expect(readCachedCredentials).toHaveBeenCalledTimes(1)
+    expect(readEdgeAppCache).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -122,10 +125,11 @@ describe('successful refresh', () => {
       credentialError: null,
     })
     expect(reportError).not.toHaveBeenCalled()
-    expect(writeCachedCredentials).toHaveBeenCalledWith({
-      accessToken: 'abc',
-      instanceUrl: 'https://na1.salesforce.com',
-    })
+    expect(writeEdgeAppCache).toHaveBeenCalledWith(
+      CACHE_NAMESPACE,
+      'credentials',
+      { accessToken: 'abc', instanceUrl: 'https://na1.salesforce.com' }
+    )
   })
 
   test('requests the access token endpoint with the expected url and auth header', async () => {

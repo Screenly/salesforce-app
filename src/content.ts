@@ -1,11 +1,21 @@
-import { reportError, getSettingWithDefault } from '@screenly/edge-apps/utils'
+import {
+  getSettingWithDefault,
+  readEdgeAppCache,
+  reportError,
+  writeEdgeAppCache,
+} from '@screenly/edge-apps/utils'
 import {
   getDashboardResults,
   getReportResults,
   triggerDashboardRefresh,
 } from './api'
-import { readCachedContent, writeCachedContent } from './cache'
-import { getRuntimeState, refreshToken, type RuntimeState } from './credentials'
+import {
+  CACHE_NAMESPACE,
+  getRuntimeState,
+  refreshToken,
+  type Credentials,
+  type RuntimeState,
+} from './credentials'
 import { renderContent, type RenderableContent } from './templates'
 import type {
   DashboardResults,
@@ -38,7 +48,12 @@ type RenderContext = {
   showLabels: boolean
 }
 
-type Credentials = { accessToken: string; instanceUrl: string }
+function contentCacheKey(
+  contentType: SalesforceContentType,
+  contentId: string
+): string {
+  return `content:${contentType}:${contentId}`
+}
 
 async function fetchContentResults(
   contentType: SalesforceContentType,
@@ -65,7 +80,11 @@ async function loadContent(
     accessToken,
     context.contentId
   )
-  writeCachedContent(context.contentType, context.contentId, results)
+  writeEdgeAppCache(
+    CACHE_NAMESPACE,
+    contentCacheKey(context.contentType, context.contentId),
+    results
+  )
   renderContent({
     contentType: context.contentType,
     contentId: context.contentId,
@@ -75,7 +94,10 @@ async function loadContent(
 }
 
 function showCachedContent(context: RenderContext): void {
-  const cached = readCachedContent(context.contentType, context.contentId)
+  const cached = readEdgeAppCache<DashboardResults | ReportResult>(
+    CACHE_NAMESPACE,
+    contentCacheKey(context.contentType, context.contentId)
+  )
 
   if (!cached) {
     throw new Error('No cached content found.')
