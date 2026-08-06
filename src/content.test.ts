@@ -26,6 +26,20 @@ mock.module('./templates', () => ({
   renderContent,
 }))
 
+const ACCESS_TOKEN = 'abc'
+const INSTANCE_URL = 'https://na1.salesforce.com'
+
+const refreshToken = mock(async () => {})
+const getRuntimeState = mock(() => ({
+  accessToken: ACCESS_TOKEN as string | null,
+  instanceUrl: INSTANCE_URL as string | null,
+  credentialError: null as Error | null,
+}))
+mock.module('./credentials', () => ({
+  refreshToken,
+  getRuntimeState,
+}))
+
 const { refresh, inferSalesforceContentType } = await import('./content')
 
 afterEach(() => {
@@ -56,16 +70,6 @@ describe('inferSalesforceContentType', () => {
 
 const CONTENT_ID = '01Zg5000002iDwTEAU'
 const CONTENT_TYPE = 'dashboard'
-const ACCESS_TOKEN = 'abc'
-const INSTANCE_URL = 'https://na1.salesforce.com'
-
-function getRuntimeState() {
-  return {
-    accessToken: ACCESS_TOKEN,
-    instanceUrl: INSTANCE_URL,
-    credentialError: null,
-  }
-}
 
 beforeEach(() => {
   setupScreenlyMock({}, { content_id: CONTENT_ID })
@@ -76,11 +80,18 @@ beforeEach(() => {
   getReportResults.mockClear()
   triggerDashboardRefresh.mockClear()
   renderContent.mockClear()
+  refreshToken.mockClear()
+  getRuntimeState.mockClear()
+  getRuntimeState.mockReturnValue({
+    accessToken: ACCESS_TOKEN,
+    instanceUrl: INSTANCE_URL,
+    credentialError: null,
+  })
 })
 
 describe('render success', () => {
   test('renders live content and writes it to cache on success', async () => {
-    await refresh(getRuntimeState)
+    await refresh()
 
     expect(writeCachedContent).toHaveBeenCalledWith(
       CONTENT_TYPE,
@@ -100,9 +111,7 @@ describe('render content failover', () => {
     })
     readCachedContent.mockReturnValue(null)
 
-    await expect(refresh(getRuntimeState)).rejects.toThrow(
-      'No cached content found.'
-    )
+    await expect(refresh()).rejects.toThrow('No cached content found.')
 
     expect(renderContent).not.toHaveBeenCalled()
   })
@@ -117,7 +126,7 @@ describe('render content failover', () => {
       componentData: [],
     })
 
-    await expect(refresh(getRuntimeState)).rejects.toThrow('down')
+    await expect(refresh()).rejects.toThrow('down')
 
     expect(readCachedContent).not.toHaveBeenCalled()
   })
@@ -131,7 +140,7 @@ describe('render content failover', () => {
       componentData: [],
     })
 
-    await refresh(getRuntimeState)
+    await refresh()
 
     expect(renderContent).toHaveBeenCalledWith(
       expect.objectContaining({ contentType: 'dashboard' })

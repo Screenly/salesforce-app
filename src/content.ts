@@ -5,7 +5,7 @@ import {
   triggerDashboardRefresh,
 } from './api'
 import { readCachedContent, writeCachedContent } from './cache'
-import type { RuntimeState } from './credentials'
+import { getRuntimeState, refreshToken, type RuntimeState } from './credentials'
 import { renderContent, type RenderableContent } from './templates'
 import type {
   DashboardResults,
@@ -114,17 +114,15 @@ function requireCredentials(context: RenderContext): CredentialsResult {
   throw new Error(credentialError!.message)
 }
 
-export async function refresh(
-  getRuntimeState: () => RuntimeState
-): Promise<void> {
+export async function refresh(): Promise<void> {
+  await refreshToken()
+
   const context: RenderContext = {
     contentId: getSettingWithDefault<string>('content_id', ''),
     contentType: inferSalesforceContentType(),
     runtimeState: getRuntimeState(),
-    displayErrors:
-      getSettingWithDefault<string>('display_errors', 'false') === 'true',
-    showLabels:
-      getSettingWithDefault<string>('show_labels', 'false') === 'true',
+    displayErrors: getSettingWithDefault<boolean>('display_errors', false),
+    showLabels: getSettingWithDefault<boolean>('show_labels', false),
   }
 
   const credentials = requireCredentials(context)
