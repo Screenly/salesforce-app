@@ -1,4 +1,4 @@
-import { html, render as renderTemplate, type TemplateResult } from 'lit-html'
+import { html, render, type TemplateResult } from 'lit-html'
 
 export function statTemplate(label: string, value: string): TemplateResult {
   return html`
@@ -14,5 +14,5 @@ export function mountStat(
   label: string,
   value: string
 ): void {
-  renderTemplate(statTemplate(label, value), container)
+  render(statTemplate(label, value), container)
 }

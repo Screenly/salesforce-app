@@ -1,4 +1,4 @@
-import { html, render as renderTemplate, type TemplateResult } from 'lit-html'
+import { html, render, type TemplateResult } from 'lit-html'
 import { ref } from 'lit-html/directives/ref.js'
 import type { Card } from './card.types'
 
@@ -19,7 +19,7 @@ function cardTemplate(card: Card): TemplateResult {
 }
 
 export function mountCards(chartsGrid: HTMLElement, cards: Card[]): void {
-  renderTemplate(html`${cards.map((card) => cardTemplate(card))}`, chartsGrid)
+  render(html`${cards.map((card) => cardTemplate(card))}`, chartsGrid)
 
   for (const card of cards) {
     if (card.contentRef.value) card.draw(card.contentRef.value)

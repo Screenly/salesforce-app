@@ -1,4 +1,4 @@
-import { html, render as renderTemplate, type TemplateResult } from 'lit-html'
+import { html, render, type TemplateResult } from 'lit-html'
 import type { ReportResult } from '../types'
 import { emptyTemplate } from './empty'
 
@@ -18,5 +18,5 @@ export function mountMetric(
   container: HTMLElement,
   reportResult: ReportResult
 ): void {
-  renderTemplate(metricTemplate(reportResult), container)
+  render(metricTemplate(reportResult), container)
 }

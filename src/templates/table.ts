@@ -1,4 +1,4 @@
-import { html, render as renderTemplate, type TemplateResult } from 'lit-html'
+import { html, render, type TemplateResult } from 'lit-html'
 import type { DashboardMetadataComponent, ReportResult } from '../types'
 import { emptyTemplate } from './empty'
 import { extractTableColumns, extractTableRows } from './table.lib'
@@ -39,9 +39,9 @@ export function mountTable(
   const rows = extractTableRows(reportResult, columns)
 
   if (rows.length === 0 || columns.length === 0) {
-    renderTemplate(emptyTemplate(), container)
+    render(emptyTemplate(), container)
     return
   }
 
-  renderTemplate(tableTemplate(columns, rows), container)
+  render(tableTemplate(columns, rows), container)
 }
