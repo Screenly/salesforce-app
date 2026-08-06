@@ -5,6 +5,7 @@ import type {
   ReportResult,
 } from '../types'
 import { buildNeedlePlugin } from './gauge.lib'
+import { resetChartContainer } from './chart.lib'
 import { mountEmpty } from './empty'
 
 Chart.register(...registerables)
@@ -32,6 +33,8 @@ export function mountGauge(
   const min = breaks[0].lowerBound
   const max = breaks[breaks.length - 1].upperBound
   const percent = Math.max(0, Math.min(1, (value - min) / (max - min)))
+
+  resetChartContainer(container)
 
   const canvas = document.createElement('canvas')
   canvas.id = `chart-${componentId}`

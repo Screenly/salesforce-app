@@ -1,5 +1,12 @@
+import { Chart } from 'chart.js'
 import type { ReportResult } from '../types'
 import type { ChartData, ChartKind } from './chart.types'
+
+export function resetChartContainer(container: HTMLElement): void {
+  const existingCanvas = container.querySelector('canvas')
+  if (existingCanvas) Chart.getChart(existingCanvas)?.destroy()
+  container.replaceChildren()
+}
 
 export const CHART_TYPES = new Set([
   'bar',

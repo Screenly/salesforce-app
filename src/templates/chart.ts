@@ -6,6 +6,7 @@ import {
   buildScalesConfig,
   CHART_COLORS,
   extractChartData,
+  resetChartContainer,
 } from './chart.lib'
 import type { ChartKind } from './chart.types'
 import { mountEmpty } from './empty'
@@ -31,6 +32,9 @@ export function mountChart(
 
   const isHorizontalBar = chartKind === 'horizontalBar'
   const chartJsType = chartKind === 'horizontalBar' ? 'bar' : chartKind
+
+  resetChartContainer(container)
+
   const canvas = document.createElement('canvas')
   canvas.id = `chart-${componentId}`
   container.appendChild(canvas)
