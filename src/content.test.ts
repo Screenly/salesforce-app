@@ -22,12 +22,12 @@ mock.module('./api', () => ({
   AuthError: class AuthError extends Error {},
 }))
 
-const showContent = mock(() => {})
-mock.module('./render', () => ({
-  showContent,
+const renderContent = mock(() => {})
+mock.module('./templates', () => ({
+  renderContent,
 }))
 
-const { render, inferSalesforceContentType } = await import('./content')
+const { refreshContent, inferSalesforceContentType } = await import('./content')
 
 afterEach(() => {
   resetScreenlyMock()
@@ -60,16 +60,17 @@ const CONTENT_TYPE = 'dashboard'
 const ACCESS_TOKEN = 'abc'
 const INSTANCE_URL = 'https://na1.salesforce.com'
 
-function makeContext(overrides: Partial<Parameters<typeof render>[0]> = {}) {
+function makeContext(
+  overrides: Partial<Parameters<typeof refreshContent>[0]> = {}
+) {
   return {
     contentId: CONTENT_ID,
     contentType: CONTENT_TYPE,
-    getRuntimeState: () => ({
+    runtimeState: {
       accessToken: ACCESS_TOKEN,
       instanceUrl: INSTANCE_URL,
       credentialError: null,
-    }),
-    refreshToken: async () => {},
+    },
     displayErrors: false,
     showLabels: false,
     ...overrides,
@@ -83,21 +84,21 @@ beforeEach(() => {
   getDashboardResults.mockClear()
   getReportResults.mockClear()
   triggerDashboardRefresh.mockClear()
-  showContent.mockClear()
+  renderContent.mockClear()
 })
 
 describe('render success', () => {
   test('renders live content and writes it to cache on success', async () => {
     const context = makeContext()
 
-    await render(context)
+    await refreshContent(context)
 
     expect(writeCachedContent).toHaveBeenCalledWith(
       CONTENT_TYPE,
       CONTENT_ID,
       expect.objectContaining({ dashboardMetadata: expect.anything() })
     )
-    expect(showContent).toHaveBeenCalledWith(
+    expect(renderContent).toHaveBeenCalledWith(
       expect.objectContaining({ contentType: 'dashboard' })
     )
   })
@@ -111,9 +112,11 @@ describe('render content failover', () => {
     readCachedContent.mockReturnValue(null)
     const context = makeContext({ displayErrors: false })
 
-    await expect(render(context)).rejects.toThrow('No cached content found.')
+    await expect(refreshContent(context)).rejects.toThrow(
+      'No cached content found.'
+    )
 
-    expect(showContent).not.toHaveBeenCalled()
+    expect(renderContent).not.toHaveBeenCalled()
   })
 
   test('shows the error instead of using the cache when display_errors is on', async () => {
@@ -126,7 +129,7 @@ describe('render content failover', () => {
     })
     const context = makeContext({ displayErrors: true })
 
-    await expect(render(context)).rejects.toThrow('down')
+    await expect(refreshContent(context)).rejects.toThrow('down')
 
     expect(readCachedContent).not.toHaveBeenCalled()
   })
@@ -141,9 +144,9 @@ describe('render content failover', () => {
     })
     const context = makeContext({ displayErrors: false })
 
-    await render(context)
+    await refreshContent(context)
 
-    expect(showContent).toHaveBeenCalledWith(
+    expect(renderContent).toHaveBeenCalledWith(
       expect.objectContaining({ contentType: 'dashboard' })
     )
   })
