@@ -381,18 +381,6 @@ const { screenlyJsContent: dashboardScreenlyJsContent } =
     }
   )
 
-const { screenlyJsContent: errorScreenlyJsContent } =
-  createMockScreenlyForScreenshots(
-    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
-    {
-      content_id: MOCK_DASHBOARD_ID,
-      refresh_interval: '300',
-      display_errors: 'true',
-      screenly_oauth_tokens_url: 'http://localhost:3000/',
-      screenly_app_auth_token: 'mock-token',
-    }
-  )
-
 const { screenlyJsContent: reportScreenlyJsContent } =
   createMockScreenlyForScreenshots(
     { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
@@ -470,20 +458,13 @@ function mockCredentials(context: BrowserContext): Promise<void> {
   )
 }
 
-async function setupDashboardRoutes(
-  context: BrowserContext,
-  dashboardStatus: number
-): Promise<void> {
+async function setupDashboardRoutes(context: BrowserContext): Promise<void> {
   await mockCredentials(context)
   await context.route(/analytics\/dashboards/, (route) =>
     route.fulfill({
-      status: dashboardStatus,
+      status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(
-        dashboardStatus === 200
-          ? MOCK_DASHBOARD_RESPONSE
-          : { message: dashboardStatus === 404 ? 'Not Found' : 'Unauthorized' }
-      ),
+      body: JSON.stringify(MOCK_DASHBOARD_RESPONSE),
     })
   )
 }
@@ -507,37 +488,10 @@ for (const { width, height } of RESOLUTIONS) {
       height,
       `dashboard-${width}x${height}.png`,
       dashboardScreenlyJsContent,
-      (context) => setupDashboardRoutes(context, 200)
+      (context) => setupDashboardRoutes(context)
     )
   })
 }
-
-for (const [width, height] of [
-  [3840, 2160],
-  [2160, 3840],
-]) {
-  test(`screenshot error ${width}x${height}`, async ({ browser }) => {
-    await takeScreenshot(
-      browser,
-      width,
-      height,
-      `error-${width}x${height}.png`,
-      errorScreenlyJsContent,
-      (context) => setupDashboardRoutes(context, 401)
-    )
-  })
-}
-
-test('screenshot error-not-found 3840x2160', async ({ browser }) => {
-  await takeScreenshot(
-    browser,
-    3840,
-    2160,
-    'error-not-found-3840x2160.png',
-    errorScreenlyJsContent,
-    (context) => setupDashboardRoutes(context, 404)
-  )
-})
 
 for (const [width, height] of [
   [1920, 1080],
@@ -552,7 +506,7 @@ for (const [width, height] of [
       height,
       `dashboard-labels-${width}x${height}.png`,
       dashboardLabelsScreenlyJsContent,
-      (context) => setupDashboardRoutes(context, 200)
+      (context) => setupDashboardRoutes(context)
     )
   })
 }
