@@ -19,7 +19,6 @@ mock.module('./api', () => ({
   getDashboardResults,
   getReportResults,
   triggerDashboardRefresh,
-  AuthError: class AuthError extends Error {},
 }))
 
 const renderContent = mock(() => {})
