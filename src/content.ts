@@ -38,9 +38,7 @@ type RenderContext = {
   showLabels: boolean
 }
 
-type CredentialsResult =
-  | { ok: true; accessToken: string; instanceUrl: string }
-  | { ok: false }
+type Credentials = { accessToken: string; instanceUrl: string }
 
 async function fetchContentResults(
   contentType: SalesforceContentType,
@@ -100,15 +98,15 @@ function handleContentFailure(context: RenderContext, err: unknown): void {
   showCachedContent(context)
 }
 
-function requireCredentials(context: RenderContext): CredentialsResult {
+function getCredentials(context: RenderContext): Credentials | null {
   const { accessToken, instanceUrl, credentialError } = context.runtimeState
 
   if (accessToken && instanceUrl) {
-    return { ok: true, accessToken, instanceUrl }
+    return { accessToken, instanceUrl }
   }
 
   if (!context.displayErrors) {
-    return { ok: false }
+    return null
   }
 
   throw new Error(credentialError!.message)
@@ -125,8 +123,8 @@ export async function refresh(): Promise<void> {
     showLabels: getSettingWithDefault<boolean>('show_labels', false),
   }
 
-  const credentials = requireCredentials(context)
-  if (!credentials.ok) return
+  const credentials = getCredentials(context)
+  if (!credentials) return
 
   try {
     await loadContent(context, credentials.accessToken, credentials.instanceUrl)
