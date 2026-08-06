@@ -6,7 +6,7 @@ import {
 } from './api'
 import { readCachedContent, writeCachedContent } from './cache'
 import type { RuntimeState } from './credentials'
-import { showContent, type ContentToRender } from './render'
+import { renderContent, type RenderableContent } from './templates'
 import type {
   DashboardResults,
   ReportResult,
@@ -30,10 +30,10 @@ export function inferSalesforceContentType(): SalesforceContentType {
   )
 }
 
-export type RenderContext = {
+type RenderContext = {
   contentId: string
   contentType: SalesforceContentType
-  getRuntimeState: () => RuntimeState
+  runtimeState: RuntimeState
   displayErrors: boolean
   showLabels: boolean
 }
@@ -68,12 +68,12 @@ async function loadContent(
     context.contentId
   )
   writeCachedContent(context.contentType, context.contentId, results)
-  showContent({
+  renderContent({
     contentType: context.contentType,
     contentId: context.contentId,
     results,
     showLabels: context.showLabels,
-  } as ContentToRender)
+  } as RenderableContent)
 }
 
 function showCachedContent(context: RenderContext): void {
@@ -83,12 +83,12 @@ function showCachedContent(context: RenderContext): void {
     throw new Error('No cached content found.')
   }
 
-  showContent({
+  renderContent({
     contentType: context.contentType,
     contentId: context.contentId,
     results: cached,
     showLabels: context.showLabels,
-  } as ContentToRender)
+  } as RenderableContent)
 }
 
 function handleContentFailure(context: RenderContext, err: unknown): void {
@@ -101,8 +101,7 @@ function handleContentFailure(context: RenderContext, err: unknown): void {
 }
 
 function requireCredentials(context: RenderContext): CredentialsResult {
-  const { accessToken, instanceUrl, credentialError } =
-    context.getRuntimeState()
+  const { accessToken, instanceUrl, credentialError } = context.runtimeState
 
   if (accessToken && instanceUrl) {
     return { ok: true, accessToken, instanceUrl }
@@ -115,7 +114,19 @@ function requireCredentials(context: RenderContext): CredentialsResult {
   throw new Error(credentialError!.message)
 }
 
-export async function render(context: RenderContext): Promise<void> {
+export async function refresh(
+  getRuntimeState: () => RuntimeState
+): Promise<void> {
+  const context: RenderContext = {
+    contentId: getSettingWithDefault<string>('content_id', ''),
+    contentType: inferSalesforceContentType(),
+    runtimeState: getRuntimeState(),
+    displayErrors:
+      getSettingWithDefault<string>('display_errors', 'false') === 'true',
+    showLabels:
+      getSettingWithDefault<string>('show_labels', 'false') === 'true',
+  }
+
   const credentials = requireCredentials(context)
   if (!credentials.ok) return
 
