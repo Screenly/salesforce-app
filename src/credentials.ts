@@ -1,8 +1,14 @@
-import { getSettingWithDefault, reportError } from '@screenly/edge-apps/utils'
-import { readCachedCredentials, writeCachedCredentials } from './cache'
-import type { SalesforceContentType } from './types'
+import {
+  getSettingWithDefault,
+  readEdgeAppCache,
+  reportError,
+  writeEdgeAppCache,
+} from '@screenly/edge-apps/utils'
+
+export const CACHE_NAMESPACE = 'salesforce-edge-app:v1'
 
 export type RefreshToken = () => Promise<void>
+export type Credentials = { accessToken: string; instanceUrl: string }
 export type RuntimeState = {
   accessToken: string | null
   instanceUrl: string | null
@@ -69,78 +75,59 @@ async function fetchCredentials(): Promise<{
   return parseCredentialsResponse(response)
 }
 
-type CredentialManagerState = RuntimeState & {
-  hasReportedCredentialError: boolean
+const state: RuntimeState = {
+  accessToken: getSettingWithDefault('access_token', '') || null,
+  instanceUrl: null,
+  credentialError: null,
 }
 
-export function createCredentialManager(
-  contentType: SalesforceContentType,
-  displayErrors: boolean
-): { refreshToken: RefreshToken; getRuntimeState: () => RuntimeState } {
-  const contentId = getSettingWithDefault('content_id', '')
-  const state: CredentialManagerState = {
-    accessToken: getSettingWithDefault('access_token', '') || null,
-    instanceUrl: null,
-    credentialError: null,
-    hasReportedCredentialError: false,
+function applySuccessfulRefresh(token: string, instanceUrl: string): void {
+  state.accessToken = token
+  state.instanceUrl = instanceUrl
+  state.credentialError = null
+  writeEdgeAppCache(CACHE_NAMESPACE, 'credentials', {
+    accessToken: token,
+    instanceUrl,
+  })
+}
+
+function applyFailedRefresh(err: unknown): void {
+  const error = err instanceof Error ? err : new Error(String(err))
+  const displayErrors = getSettingWithDefault<boolean>('display_errors', false)
+
+  reportError(error, { source: 'salesforce-credentials' })
+  state.credentialError = error
+
+  if (state.instanceUrl || displayErrors) {
+    throw error
   }
 
-  function applySuccessfulRefresh(token: string, instanceUrl: string): void {
-    state.accessToken = token
-    state.instanceUrl = instanceUrl
-    state.credentialError = null
-    state.hasReportedCredentialError = false
-    writeCachedCredentials({ accessToken: token, instanceUrl })
+  const cached = readEdgeAppCache<Credentials>(CACHE_NAMESPACE, 'credentials')
+  if (cached) {
+    state.accessToken = cached.accessToken
+    state.instanceUrl = cached.instanceUrl
   }
+}
 
-  function applyFailedRefresh(err: unknown): Error {
-    const error = err instanceof Error ? err : new Error(String(err))
+export const refreshToken: RefreshToken = async () => {
+  try {
+    const { token, metadata } = await fetchCredentials()
+    const nextInstanceUrl = metadata?.instance_url ?? state.instanceUrl
 
-    if (!state.hasReportedCredentialError) {
-      reportError(error, {
-        source: 'salesforce-credentials',
-        contentId,
-        contentType,
-      })
-      state.hasReportedCredentialError = true
+    if (!token || !nextInstanceUrl) {
+      throw new Error(NO_CREDENTIALS_MESSAGE)
     }
 
-    state.credentialError = error
-
-    if (state.instanceUrl || displayErrors) {
-      return error
-    }
-
-    const cached = readCachedCredentials()
-    if (cached) {
-      state.accessToken = cached.accessToken
-      state.instanceUrl = cached.instanceUrl
-    }
-
-    return error
+    applySuccessfulRefresh(token, nextInstanceUrl)
+  } catch (err) {
+    applyFailedRefresh(err)
   }
+}
 
-  const refreshToken = async () => {
-    try {
-      const { token, metadata } = await fetchCredentials()
-      const nextInstanceUrl = metadata?.instance_url ?? state.instanceUrl
-
-      if (!token || !nextInstanceUrl) {
-        throw new Error(NO_CREDENTIALS_MESSAGE)
-      }
-
-      applySuccessfulRefresh(token, nextInstanceUrl)
-    } catch (err) {
-      throw applyFailedRefresh(err)
-    }
-  }
-
+export function getRuntimeState(): RuntimeState {
   return {
-    refreshToken,
-    getRuntimeState: () => ({
-      accessToken: state.accessToken,
-      instanceUrl: state.instanceUrl,
-      credentialError: state.credentialError,
-    }),
+    accessToken: state.accessToken,
+    instanceUrl: state.instanceUrl,
+    credentialError: state.credentialError,
   }
 }

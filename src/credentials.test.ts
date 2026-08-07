@@ -12,25 +12,24 @@ import { setupScreenlyMock, resetScreenlyMock } from '@screenly/edge-apps/test'
 import * as utils from '@screenly/edge-apps/utils'
 
 const reportError = spyOn(utils, 'reportError').mockImplementation(() => {})
-
-const readCachedCredentials = mock(
-  () => null as { accessToken: string; instanceUrl: string } | null
+const readEdgeAppCache = spyOn(utils, 'readEdgeAppCache').mockReturnValue(null)
+const writeEdgeAppCache = spyOn(utils, 'writeEdgeAppCache').mockImplementation(
+  () => {}
 )
-const writeCachedCredentials = mock(() => {})
-mock.module('./cache', () => ({
-  readCachedCredentials,
-  writeCachedCredentials,
-}))
 
-const { createCredentialManager, NO_CREDENTIALS_MESSAGE } =
-  await import('./credentials')
-
-const CONTENT_ID = '01Zg5000002iDwTEAU'
-const CONTENT_TYPE = 'dashboard'
-
-function makeManager(displayErrors = false) {
-  return createCredentialManager(CONTENT_TYPE, displayErrors)
+const BASE_SETTINGS = {
+  screenly_oauth_tokens_url: 'https://api.example.com/oauth/',
+  screenly_app_auth_token: 'app-auth',
 }
+
+setupScreenlyMock({}, BASE_SETTINGS)
+
+const {
+  refreshToken,
+  getRuntimeState,
+  NO_CREDENTIALS_MESSAGE,
+  CACHE_NAMESPACE,
+} = await import('./credentials')
 
 function stubFetch(impl: () => Promise<unknown>) {
   const fetchMock = mock(impl)
@@ -47,7 +46,7 @@ function fakeResponse(status: number, body: unknown) {
 }
 
 function succeed() {
-  fakeResponse(200, {
+  return fakeResponse(200, {
     token: 'abc',
     metadata: { instance_url: 'https://na1.salesforce.com' },
   })
@@ -62,18 +61,11 @@ function failWithNetworkError(message: string) {
 const originalFetch = globalThis.fetch
 
 beforeEach(() => {
-  setupScreenlyMock(
-    {},
-    {
-      content_id: CONTENT_ID,
-      screenly_oauth_tokens_url: 'https://api.example.com/oauth/',
-      screenly_app_auth_token: 'app-auth',
-    }
-  )
+  setupScreenlyMock({}, BASE_SETTINGS)
   reportError.mockClear()
-  readCachedCredentials.mockClear()
-  readCachedCredentials.mockReturnValue(null)
-  writeCachedCredentials.mockClear()
+  readEdgeAppCache.mockClear()
+  readEdgeAppCache.mockReturnValue(null)
+  writeEdgeAppCache.mockClear()
 })
 
 afterEach(() => {
@@ -81,10 +73,50 @@ afterEach(() => {
   resetScreenlyMock()
 })
 
-describe('success', () => {
-  test('stores the access token and instance url on success', async () => {
+describe('credential caching before any successful refresh', () => {
+  test('does not consult the cache when display_errors is on', async () => {
+    setupScreenlyMock({}, { ...BASE_SETTINGS, display_errors: 'true' })
+    readEdgeAppCache.mockReturnValue({
+      accessToken: 'cached-token',
+      instanceUrl: 'https://cached.salesforce.com',
+    })
+    failWithNetworkError('network down')
+
+    await expect(refreshToken()).rejects.toThrow(
+      "Screenly's server could not be reached"
+    )
+
+    expect(readEdgeAppCache).not.toHaveBeenCalled()
+    expect(getRuntimeState().accessToken).toBeNull()
+    expect(getRuntimeState().instanceUrl).toBeNull()
+  })
+
+  test('repopulates from cache once, then stops re-reading once an instance url is set', async () => {
+    readEdgeAppCache.mockReturnValue({
+      accessToken: 'cached-token',
+      instanceUrl: 'https://cached.salesforce.com',
+    })
+    failWithNetworkError('network down')
+
+    await refreshToken()
+    expect(readEdgeAppCache).toHaveBeenCalledWith(
+      CACHE_NAMESPACE,
+      'credentials'
+    )
+    expect(readEdgeAppCache).toHaveBeenCalledTimes(1)
+    expect(getRuntimeState().accessToken).toBe('cached-token')
+    expect(getRuntimeState().instanceUrl).toBe('https://cached.salesforce.com')
+
+    await expect(refreshToken()).rejects.toThrow(
+      "Screenly's server could not be reached"
+    )
+    expect(readEdgeAppCache).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('successful refresh', () => {
+  test('stores the access token and instance url, and writes it to cache', async () => {
     succeed()
-    const { refreshToken, getRuntimeState } = makeManager()
     await refreshToken()
 
     expect(getRuntimeState()).toEqual({
@@ -93,29 +125,46 @@ describe('success', () => {
       credentialError: null,
     })
     expect(reportError).not.toHaveBeenCalled()
+    expect(writeEdgeAppCache).toHaveBeenCalledWith(
+      CACHE_NAMESPACE,
+      'credentials',
+      { accessToken: 'abc', instanceUrl: 'https://na1.salesforce.com' }
+    )
   })
 
-  test('reports only the first of repeated failures, then again after a success', async () => {
-    failWithNetworkError('network down')
-    const { refreshToken } = makeManager()
+  test('requests the access token endpoint with the expected url and auth header', async () => {
+    const fetchMock = succeed()
 
-    await expect(refreshToken()).rejects.toThrow('network down')
-    await expect(refreshToken()).rejects.toThrow('network down')
-    expect(reportError).toHaveBeenCalledTimes(1)
-
-    succeed()
     await refreshToken()
 
-    failWithNetworkError('boom')
-    await expect(refreshToken()).rejects.toThrow('boom')
-    expect(reportError).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.com/oauth/access_token/',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer app-auth',
+        }),
+      })
+    )
   })
 })
 
-describe('network and server errors', () => {
-  async function expectRefreshFailure(message: string) {
-    const { refreshToken, getRuntimeState } = makeManager()
+describe('failed refresh once a session is established', () => {
+  beforeEach(async () => {
+    succeed()
+    await refreshToken()
+    reportError.mockClear()
+  })
 
+  test('reports every failure, not just the first', async () => {
+    failWithNetworkError('network down')
+
+    await expect(refreshToken()).rejects.toThrow('network down')
+    await expect(refreshToken()).rejects.toThrow('network down')
+
+    expect(reportError).toHaveBeenCalledTimes(2)
+  })
+
+  async function expectRefreshFailure(message: string) {
     await expect(refreshToken()).rejects.toThrow(message)
     expect(getRuntimeState().credentialError?.message).toBe(message)
     expect(reportError).toHaveBeenCalledTimes(1)
@@ -144,46 +193,25 @@ describe('network and server errors', () => {
 
     await expectRefreshFailure("Screenly's server had a problem (429).")
   })
-})
 
-describe('other errors', () => {
   test('throws and reports when the backend responds without a token', async () => {
     fakeResponse(200, { token: '', metadata: undefined })
-    const { refreshToken, getRuntimeState } = makeManager()
 
-    await expect(refreshToken()).rejects.toThrow(NO_CREDENTIALS_MESSAGE)
-    expect(getRuntimeState().credentialError?.message).toBe(
-      NO_CREDENTIALS_MESSAGE
-    )
-    expect(reportError).toHaveBeenCalledTimes(1)
+    await expectRefreshFailure(NO_CREDENTIALS_MESSAGE)
   })
 
   test('surfaces the backend-provided reason for a non-5xx error response', async () => {
     fakeResponse(400, { error: 'Salesforce integration is not connected' })
-    const { refreshToken, getRuntimeState } = makeManager()
 
-    await expect(refreshToken()).rejects.toThrow(
-      'Salesforce integration is not connected'
-    )
-    expect(getRuntimeState().credentialError?.message).toBe(
-      'Salesforce integration is not connected'
-    )
-    expect(reportError).toHaveBeenCalledTimes(1)
+    await expectRefreshFailure('Salesforce integration is not connected')
   })
 
   test('falls back to a status-based message when the backend error is not a string', async () => {
     fakeResponse(400, {
       error: { message: 'Salesforce integration is not connected' },
     })
-    const { refreshToken, getRuntimeState } = makeManager()
 
-    await expect(refreshToken()).rejects.toThrow(
-      'Screenly returned an unexpected error (400).'
-    )
-    expect(getRuntimeState().credentialError?.message).toBe(
-      'Screenly returned an unexpected error (400).'
-    )
-    expect(reportError).toHaveBeenCalledTimes(1)
+    await expectRefreshFailure('Screenly returned an unexpected error (400).')
   })
 
   test('falls back to a status-based message when the error response body is not JSON', async () => {
@@ -194,99 +222,7 @@ describe('other errors', () => {
         throw new SyntaxError('Unexpected end of JSON input')
       },
     }))
-    const { refreshToken, getRuntimeState } = makeManager()
 
-    await expect(refreshToken()).rejects.toThrow(
-      'Screenly returned an unexpected error (400).'
-    )
-    expect(getRuntimeState().credentialError?.message).toBe(
-      'Screenly returned an unexpected error (400).'
-    )
-    expect(reportError).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('request', () => {
-  test('requests the access token endpoint with the expected url and auth header', async () => {
-    const fetchMock = fakeResponse(200, {
-      token: 'abc',
-      metadata: { instance_url: 'https://na1.salesforce.com' },
-    })
-    const { refreshToken } = makeManager()
-    await refreshToken()
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.example.com/oauth/access_token/',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: 'Bearer app-auth',
-        }),
-      })
-    )
-  })
-})
-
-describe('credential caching', () => {
-  test('writes the fresh credentials to cache on a successful refresh', async () => {
-    succeed()
-    const { refreshToken } = makeManager()
-    await refreshToken()
-
-    expect(writeCachedCredentials).toHaveBeenCalledWith({
-      accessToken: 'abc',
-      instanceUrl: 'https://na1.salesforce.com',
-    })
-  })
-
-  test('repopulates state from cache when a refresh fails and display_errors is off', async () => {
-    readCachedCredentials.mockReturnValue({
-      accessToken: 'cached-token',
-      instanceUrl: 'https://cached.salesforce.com',
-    })
-    failWithNetworkError('network down')
-    const { refreshToken, getRuntimeState } = makeManager(false)
-
-    await expect(refreshToken()).rejects.toThrow(
-      "Screenly's server could not be reached"
-    )
-
-    expect(getRuntimeState().accessToken).toBe('cached-token')
-    expect(getRuntimeState().instanceUrl).toBe('https://cached.salesforce.com')
-  })
-
-  test('does not consult the cache when display_errors is on', async () => {
-    readCachedCredentials.mockReturnValue({
-      accessToken: 'cached-token',
-      instanceUrl: 'https://cached.salesforce.com',
-    })
-    failWithNetworkError('network down')
-    const { refreshToken, getRuntimeState } = makeManager(true)
-
-    await expect(refreshToken()).rejects.toThrow(
-      "Screenly's server could not be reached"
-    )
-
-    expect(readCachedCredentials).not.toHaveBeenCalled()
-    expect(getRuntimeState().accessToken).toBeNull()
-    expect(getRuntimeState().instanceUrl).toBeNull()
-  })
-
-  test('does not re-read the cache once state already has an instance url', async () => {
-    readCachedCredentials.mockReturnValue({
-      accessToken: 'cached-token',
-      instanceUrl: 'https://cached.salesforce.com',
-    })
-    failWithNetworkError('network down')
-    const { refreshToken } = makeManager(false)
-
-    await expect(refreshToken()).rejects.toThrow(
-      "Screenly's server could not be reached"
-    )
-    expect(readCachedCredentials).toHaveBeenCalledTimes(1)
-
-    await expect(refreshToken()).rejects.toThrow(
-      "Screenly's server could not be reached"
-    )
-    expect(readCachedCredentials).toHaveBeenCalledTimes(1)
+    await expectRefreshFailure('Screenly returned an unexpected error (400).')
   })
 })

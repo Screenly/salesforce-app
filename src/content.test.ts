@@ -1,13 +1,22 @@
 import '@screenly/edge-apps/test'
-import { describe, test, expect, mock, beforeEach, afterEach } from 'bun:test'
+import {
+  describe,
+  test,
+  expect,
+  mock,
+  beforeEach,
+  afterEach,
+  spyOn,
+} from 'bun:test'
 import { setupScreenlyMock, resetScreenlyMock } from '@screenly/edge-apps/test'
+import * as utils from '@screenly/edge-apps/utils'
 
-const readCachedContent = mock(() => null as unknown)
-const writeCachedContent = mock(() => {})
-mock.module('./cache', () => ({
-  readCachedContent,
-  writeCachedContent,
-}))
+const readEdgeAppCache = spyOn(utils, 'readEdgeAppCache').mockReturnValue(null)
+const writeEdgeAppCache = spyOn(utils, 'writeEdgeAppCache').mockImplementation(
+  () => {}
+)
+
+const CACHE_NAMESPACE = 'salesforce-edge-app:v1'
 
 const getDashboardResults = mock(async () => ({
   dashboardMetadata: { name: 'Dashboard', id: 'abc', components: [] },
@@ -24,6 +33,21 @@ mock.module('./api', () => ({
 const renderContent = mock(() => {})
 mock.module('./templates', () => ({
   renderContent,
+}))
+
+const ACCESS_TOKEN = 'abc'
+const INSTANCE_URL = 'https://na1.salesforce.com'
+
+const refreshToken = mock(async () => {})
+const getRuntimeState = mock(() => ({
+  accessToken: ACCESS_TOKEN as string | null,
+  instanceUrl: INSTANCE_URL as string | null,
+  credentialError: null as Error | null,
+}))
+mock.module('./credentials', () => ({
+  CACHE_NAMESPACE,
+  refreshToken,
+  getRuntimeState,
 }))
 
 const { refresh, inferSalesforceContentType } = await import('./content')
@@ -56,35 +80,32 @@ describe('inferSalesforceContentType', () => {
 
 const CONTENT_ID = '01Zg5000002iDwTEAU'
 const CONTENT_TYPE = 'dashboard'
-const ACCESS_TOKEN = 'abc'
-const INSTANCE_URL = 'https://na1.salesforce.com'
-
-function getRuntimeState() {
-  return {
-    accessToken: ACCESS_TOKEN,
-    instanceUrl: INSTANCE_URL,
-    credentialError: null,
-  }
-}
 
 beforeEach(() => {
   setupScreenlyMock({}, { content_id: CONTENT_ID })
-  readCachedContent.mockClear()
-  readCachedContent.mockReturnValue(null)
-  writeCachedContent.mockClear()
+  readEdgeAppCache.mockClear()
+  readEdgeAppCache.mockReturnValue(null)
+  writeEdgeAppCache.mockClear()
   getDashboardResults.mockClear()
   getReportResults.mockClear()
   triggerDashboardRefresh.mockClear()
   renderContent.mockClear()
+  refreshToken.mockClear()
+  getRuntimeState.mockClear()
+  getRuntimeState.mockReturnValue({
+    accessToken: ACCESS_TOKEN,
+    instanceUrl: INSTANCE_URL,
+    credentialError: null,
+  })
 })
 
 describe('render success', () => {
   test('renders live content and writes it to cache on success', async () => {
-    await refresh(getRuntimeState)
+    await refresh()
 
-    expect(writeCachedContent).toHaveBeenCalledWith(
-      CONTENT_TYPE,
-      CONTENT_ID,
+    expect(writeEdgeAppCache).toHaveBeenCalledWith(
+      CACHE_NAMESPACE,
+      `content:${CONTENT_TYPE}:${CONTENT_ID}`,
       expect.objectContaining({ dashboardMetadata: expect.anything() })
     )
     expect(renderContent).toHaveBeenCalledWith(
@@ -98,11 +119,9 @@ describe('render content failover', () => {
     getDashboardResults.mockImplementationOnce(async () => {
       throw new Error('down')
     })
-    readCachedContent.mockReturnValue(null)
+    readEdgeAppCache.mockReturnValue(null)
 
-    await expect(refresh(getRuntimeState)).rejects.toThrow(
-      'No cached content found.'
-    )
+    await expect(refresh()).rejects.toThrow('No cached content found.')
 
     expect(renderContent).not.toHaveBeenCalled()
   })
@@ -112,26 +131,26 @@ describe('render content failover', () => {
     getDashboardResults.mockImplementationOnce(async () => {
       throw new Error('down')
     })
-    readCachedContent.mockReturnValue({
+    readEdgeAppCache.mockReturnValue({
       dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },
       componentData: [],
     })
 
-    await expect(refresh(getRuntimeState)).rejects.toThrow('down')
+    await expect(refresh()).rejects.toThrow('down')
 
-    expect(readCachedContent).not.toHaveBeenCalled()
+    expect(readEdgeAppCache).not.toHaveBeenCalled()
   })
 
   test('renders from cache on an error when display_errors is off', async () => {
     getDashboardResults.mockImplementationOnce(async () => {
       throw new Error('some unrelated failure')
     })
-    readCachedContent.mockReturnValue({
+    readEdgeAppCache.mockReturnValue({
       dashboardMetadata: { name: 'Cached', id: 'abc', components: [] },
       componentData: [],
     })
 
-    await refresh(getRuntimeState)
+    await refresh()
 
     expect(renderContent).toHaveBeenCalledWith(
       expect.objectContaining({ contentType: 'dashboard' })
