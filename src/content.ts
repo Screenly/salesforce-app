@@ -120,15 +120,11 @@ function handleContentFailure(context: RenderContext, err: unknown): void {
   showCachedContent(context)
 }
 
-function getCredentials(context: RenderContext): Credentials | null {
+function getCredentials(context: RenderContext): Credentials {
   const { accessToken, instanceUrl, credentialError } = context.runtimeState
 
   if (accessToken && instanceUrl) {
     return { accessToken, instanceUrl }
-  }
-
-  if (!context.displayErrors) {
-    return null
   }
 
   throw new Error(credentialError!.message)
@@ -146,7 +142,6 @@ export async function refresh(): Promise<void> {
   }
 
   const credentials = getCredentials(context)
-  if (!credentials) return
 
   try {
     await loadContent(context, credentials.accessToken, credentials.instanceUrl)
