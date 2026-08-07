@@ -18,29 +18,12 @@ export type RuntimeState = {
 export const NO_CREDENTIALS_MESSAGE =
   'No access token or instance URL available.'
 
+export class ScreenlyBackendError extends Error {}
+
 type CredentialsResponse = {
   token?: string
   metadata?: { instance_url?: string }
   error?: string
-}
-
-async function requestCredentials(): Promise<Response> {
-  try {
-    return await fetch(
-      `${screenly.settings.screenly_oauth_tokens_url}access_token/`,
-      {
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${screenly.settings.screenly_app_auth_token}`,
-        },
-      }
-    )
-  } catch (err) {
-    throw new Error(
-      `Screenly's server could not be reached (${err instanceof Error ? err.message : String(err)}).`,
-      { cause: err }
-    )
-  }
 }
 
 async function parseCredentialsResponse(response: Response): Promise<{
@@ -67,12 +50,36 @@ async function parseCredentialsResponse(response: Response): Promise<{
   return { token, metadata }
 }
 
-async function fetchCredentials(): Promise<{
-  token?: string
-  metadata?: { instance_url?: string }
-}> {
-  const response = await requestCredentials()
-  return parseCredentialsResponse(response)
+async function fetchCredentials(
+  fallbackInstanceUrl: string | null
+): Promise<{ token: string; instanceUrl: string }> {
+  let response: Response
+  try {
+    response = await fetch(
+      `${screenly.settings.screenly_oauth_tokens_url}access_token/`,
+      {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${screenly.settings.screenly_app_auth_token}`,
+        },
+      }
+    )
+  } catch (err) {
+    const cause = err instanceof Error ? err : new Error(String(err))
+    throw new ScreenlyBackendError(
+      `Screenly's server could not be reached (${cause.message}).`,
+      { cause }
+    )
+  }
+
+  const { token, metadata } = await parseCredentialsResponse(response)
+  const instanceUrl = metadata?.instance_url ?? fallbackInstanceUrl
+
+  if (!token || !instanceUrl) {
+    throw new ScreenlyBackendError(NO_CREDENTIALS_MESSAGE)
+  }
+
+  return { token, instanceUrl }
 }
 
 const state: RuntimeState = {
@@ -111,14 +118,8 @@ function applyFailedRefresh(err: unknown): void {
 
 export const refreshToken: RefreshToken = async () => {
   try {
-    const { token, metadata } = await fetchCredentials()
-    const nextInstanceUrl = metadata?.instance_url ?? state.instanceUrl
-
-    if (!token || !nextInstanceUrl) {
-      throw new Error(NO_CREDENTIALS_MESSAGE)
-    }
-
-    applySuccessfulRefresh(token, nextInstanceUrl)
+    const { token, instanceUrl } = await fetchCredentials(state.instanceUrl)
+    applySuccessfulRefresh(token, instanceUrl)
   } catch (err) {
     applyFailedRefresh(err)
   }

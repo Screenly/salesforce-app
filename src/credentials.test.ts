@@ -29,6 +29,7 @@ const {
   getRuntimeState,
   NO_CREDENTIALS_MESSAGE,
   CACHE_NAMESPACE,
+  ScreenlyBackendError,
 } = await import('./credentials')
 
 function stubFetch(impl: () => Promise<unknown>) {
@@ -186,6 +187,19 @@ describe('failed refresh once a session is established', () => {
     await expectRefreshFailure(
       "Screenly's server could not be reached (Failed to fetch)."
     )
+  })
+
+  test('wraps a network failure in a BackendError with the original error as its cause', async () => {
+    const networkFailure = new TypeError('Failed to fetch')
+    stubFetch(async () => {
+      throw networkFailure
+    })
+
+    await expect(refreshToken()).rejects.toThrow(networkFailure.message)
+
+    const { credentialError } = getRuntimeState()
+    expect(credentialError).toBeInstanceOf(ScreenlyBackendError)
+    expect(credentialError?.cause).toBe(networkFailure)
   })
 
   test('throws on a 429 response', async () => {
