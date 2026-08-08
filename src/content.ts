@@ -16,7 +16,10 @@ import {
   type Credentials,
   type RuntimeState,
 } from './credentials'
-import { renderContent, type RenderableContent } from './templates'
+import {
+  renderSalesforceContent,
+  type RenderableSalesforceContent,
+} from './templates'
 import type {
   DashboardResults,
   ReportResult,
@@ -85,12 +88,12 @@ async function loadContent(
     contentCacheKey(context.contentType, context.contentId),
     results
   )
-  renderContent({
+  renderSalesforceContent({
     contentType: context.contentType,
     contentId: context.contentId,
     results,
     showLabels: context.showLabels,
-  } as RenderableContent)
+  } as RenderableSalesforceContent)
 }
 
 function showCachedContent(context: RenderContext): void {
@@ -103,12 +106,12 @@ function showCachedContent(context: RenderContext): void {
     throw new Error('No cached content found.')
   }
 
-  renderContent({
+  renderSalesforceContent({
     contentType: context.contentType,
     contentId: context.contentId,
     results: cached,
     showLabels: context.showLabels,
-  } as RenderableContent)
+  } as RenderableSalesforceContent)
 }
 
 function handleContentFailure(context: RenderContext, err: unknown): void {

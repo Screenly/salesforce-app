@@ -30,9 +30,9 @@ mock.module('./api', () => ({
   triggerDashboardRefresh,
 }))
 
-const renderContent = mock(() => {})
+const renderSalesforceContent = mock(() => {})
 mock.module('./templates', () => ({
-  renderContent,
+  renderSalesforceContent,
 }))
 
 const ACCESS_TOKEN = 'abc'
@@ -89,7 +89,7 @@ beforeEach(() => {
   getDashboardResults.mockClear()
   getReportResults.mockClear()
   triggerDashboardRefresh.mockClear()
-  renderContent.mockClear()
+  renderSalesforceContent.mockClear()
   refreshToken.mockClear()
   getRuntimeState.mockClear()
   getRuntimeState.mockReturnValue({
@@ -108,7 +108,7 @@ describe('render success', () => {
       `content:${CONTENT_TYPE}:${CONTENT_ID}`,
       expect.objectContaining({ dashboardMetadata: expect.anything() })
     )
-    expect(renderContent).toHaveBeenCalledWith(
+    expect(renderSalesforceContent).toHaveBeenCalledWith(
       expect.objectContaining({ contentType: 'dashboard' })
     )
   })
@@ -123,7 +123,7 @@ describe('render content failover', () => {
 
     await expect(refresh()).rejects.toThrow('No cached content found.')
 
-    expect(renderContent).not.toHaveBeenCalled()
+    expect(renderSalesforceContent).not.toHaveBeenCalled()
   })
 
   test('shows the error instead of using the cache when display_errors is on', async () => {
@@ -152,7 +152,7 @@ describe('render content failover', () => {
 
     await refresh()
 
-    expect(renderContent).toHaveBeenCalledWith(
+    expect(renderSalesforceContent).toHaveBeenCalledWith(
       expect.objectContaining({ contentType: 'dashboard' })
     )
   })

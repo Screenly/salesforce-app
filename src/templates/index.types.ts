@@ -1,6 +1,6 @@
 import type { DashboardResults, ReportResult } from '../types'
 
-export type RenderableContent =
+export type RenderableSalesforceContent =
   | {
       contentType: 'dashboard'
       contentId: string
