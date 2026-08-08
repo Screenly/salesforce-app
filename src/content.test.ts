@@ -15,6 +15,7 @@ const readEdgeAppCache = spyOn(utils, 'readEdgeAppCache').mockReturnValue(null)
 const writeEdgeAppCache = spyOn(utils, 'writeEdgeAppCache').mockImplementation(
   () => {}
 )
+const reportError = spyOn(utils, 'reportError').mockImplementation(() => {})
 
 const CACHE_NAMESPACE = 'salesforce-edge-app:v1'
 
@@ -90,6 +91,7 @@ beforeEach(() => {
   getReportResults.mockClear()
   triggerDashboardRefresh.mockClear()
   renderSalesforceContent.mockClear()
+  reportError.mockClear()
   refreshToken.mockClear()
   getRuntimeState.mockClear()
   getRuntimeState.mockReturnValue({
@@ -124,6 +126,14 @@ describe('render content failover', () => {
     await expect(refresh()).rejects.toThrow('No cached content found.')
 
     expect(renderSalesforceContent).not.toHaveBeenCalled()
+    expect(reportError).toHaveBeenCalledWith(
+      new Error('down'),
+      expect.objectContaining({
+        source: 'salesforce-content',
+        contentId: CONTENT_ID,
+        contentType: CONTENT_TYPE,
+      })
+    )
   })
 
   test('shows the error instead of using the cache when display_errors is on', async () => {

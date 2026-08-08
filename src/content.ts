@@ -72,55 +72,44 @@ async function fetchContentResults(
   return getReportResults(instanceUrl, accessToken, contentId)
 }
 
-async function loadContent(
+async function getContent(
   context: RenderContext,
   accessToken: string,
   instanceUrl: string
-): Promise<void> {
-  const results = await fetchContentResults(
-    context.contentType,
-    instanceUrl,
-    accessToken,
-    context.contentId
-  )
-  writeEdgeAppCache(
-    CACHE_NAMESPACE,
-    contentCacheKey(context.contentType, context.contentId),
-    results
-  )
-  renderSalesforceContent({
-    contentType: context.contentType,
-    contentId: context.contentId,
-    results,
-    showLabels: context.showLabels,
-  } as RenderableSalesforceContent)
-}
-
-function showCachedContent(context: RenderContext): void {
-  const cached = readEdgeAppCache<DashboardResults | ReportResult>(
-    CACHE_NAMESPACE,
-    contentCacheKey(context.contentType, context.contentId)
-  )
-
-  if (!cached) {
-    throw new Error('No cached content found.')
-  }
-
-  renderSalesforceContent({
-    contentType: context.contentType,
-    contentId: context.contentId,
-    results: cached,
-    showLabels: context.showLabels,
-  } as RenderableSalesforceContent)
-}
-
-function handleContentFailure(context: RenderContext, err: unknown): void {
-  if (context.displayErrors) {
-    throw new Error(
-      err instanceof Error ? err.message : 'Failed to load content.'
+): Promise<DashboardResults | ReportResult> {
+  try {
+    const results = await fetchContentResults(
+      context.contentType,
+      instanceUrl,
+      accessToken,
+      context.contentId
     )
+    writeEdgeAppCache(
+      CACHE_NAMESPACE,
+      contentCacheKey(context.contentType, context.contentId),
+      results
+    )
+    return results
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err))
+    reportError(error, {
+      source: 'salesforce-content',
+      contentId: context.contentId,
+      contentType: context.contentType,
+    })
+
+    if (context.displayErrors) throw error
+
+    const cached = readEdgeAppCache<DashboardResults | ReportResult>(
+      CACHE_NAMESPACE,
+      contentCacheKey(context.contentType, context.contentId)
+    )
+    if (!cached) {
+      throw new Error('No cached content found.', { cause: err })
+    }
+
+    return cached
   }
-  showCachedContent(context)
 }
 
 function getCredentials(context: RenderContext): Credentials {
@@ -145,15 +134,16 @@ export async function refresh(): Promise<void> {
   }
 
   const credentials = getCredentials(context)
+  const results = await getContent(
+    context,
+    credentials.accessToken,
+    credentials.instanceUrl
+  )
 
-  try {
-    await loadContent(context, credentials.accessToken, credentials.instanceUrl)
-  } catch (err) {
-    reportError(err, {
-      source: 'salesforce-content',
-      contentId: context.contentId,
-      contentType: context.contentType,
-    })
-    handleContentFailure(context, err)
-  }
+  renderSalesforceContent({
+    contentType: context.contentType,
+    contentId: context.contentId,
+    results,
+    showLabels: context.showLabels,
+  } as RenderableSalesforceContent)
 }
