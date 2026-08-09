@@ -112,8 +112,8 @@ async function getContent(
   }
 }
 
-function getCredentials(context: RenderContext): Credentials {
-  const { accessToken, instanceUrl, credentialError } = context.runtimeState
+function getCredentials(runtimeState: RuntimeState): Credentials {
+  const { accessToken, instanceUrl, credentialError } = runtimeState
 
   if (accessToken && instanceUrl) {
     return { accessToken, instanceUrl }
@@ -133,7 +133,7 @@ export async function refresh(): Promise<void> {
     showLabels: getSettingWithDefault<boolean>('show_labels', false),
   }
 
-  const credentials = getCredentials(context)
+  const credentials = getCredentials(context.runtimeState)
   const results = await getContent(
     context,
     credentials.accessToken,
