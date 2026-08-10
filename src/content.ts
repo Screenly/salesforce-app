@@ -99,17 +99,17 @@ async function getContent(
     })
 
     if (context.displayErrors) throw error
-
-    const cached = readEdgeAppCache<DashboardResults | ReportResult>(
-      CACHE_NAMESPACE,
-      contentCacheKey(context.contentType, context.contentId)
-    )
-    if (!cached) {
-      throw new Error('No cached content found.', { cause: err })
-    }
-
-    return cached
   }
+
+  const cached = readEdgeAppCache<DashboardResults | ReportResult>(
+    CACHE_NAMESPACE,
+    contentCacheKey(context.contentType, context.contentId)
+  )
+  if (!cached) {
+    throw new Error('No cached content found.')
+  }
+
+  return cached
 }
 
 function getCredentials(runtimeState: SalesforceConnectionState): Credentials {
