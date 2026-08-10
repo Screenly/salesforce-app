@@ -9,7 +9,7 @@ export const CACHE_NAMESPACE = 'salesforce-edge-app:v1'
 
 export type RefreshToken = () => Promise<void>
 export type Credentials = { accessToken: string; instanceUrl: string }
-export type RuntimeState = {
+export type SalesforceConnectionState = {
   accessToken: string | null
   instanceUrl: string | null
   credentialError: Error | null
@@ -82,16 +82,16 @@ async function fetchCredentials(
   return { token, instanceUrl }
 }
 
-const state: RuntimeState = {
+export const salesforceConnectionState: SalesforceConnectionState = {
   accessToken: getSettingWithDefault('access_token', '') || null,
   instanceUrl: null,
   credentialError: null,
 }
 
 function applySuccessfulRefresh(token: string, instanceUrl: string): void {
-  state.accessToken = token
-  state.instanceUrl = instanceUrl
-  state.credentialError = null
+  salesforceConnectionState.accessToken = token
+  salesforceConnectionState.instanceUrl = instanceUrl
+  salesforceConnectionState.credentialError = null
   writeEdgeAppCache(CACHE_NAMESPACE, 'credentials', {
     accessToken: token,
     instanceUrl,
@@ -103,32 +103,26 @@ function applyFailedRefresh(err: unknown): void {
   const displayErrors = getSettingWithDefault<boolean>('display_errors', false)
 
   reportError(error, { source: 'salesforce-credentials' })
-  state.credentialError = error
+  salesforceConnectionState.credentialError = error
 
-  if (state.instanceUrl || displayErrors) {
+  if (salesforceConnectionState.instanceUrl || displayErrors) {
     throw error
   }
 
   const cached = readEdgeAppCache<Credentials>(CACHE_NAMESPACE, 'credentials')
   if (cached) {
-    state.accessToken = cached.accessToken
-    state.instanceUrl = cached.instanceUrl
+    salesforceConnectionState.accessToken = cached.accessToken
+    salesforceConnectionState.instanceUrl = cached.instanceUrl
   }
 }
 
 export const refreshToken: RefreshToken = async () => {
   try {
-    const { token, instanceUrl } = await fetchCredentials(state.instanceUrl)
+    const { token, instanceUrl } = await fetchCredentials(
+      salesforceConnectionState.instanceUrl
+    )
     applySuccessfulRefresh(token, instanceUrl)
   } catch (err) {
     applyFailedRefresh(err)
-  }
-}
-
-export function getRuntimeState(): RuntimeState {
-  return {
-    accessToken: state.accessToken,
-    instanceUrl: state.instanceUrl,
-    credentialError: state.credentialError,
   }
 }

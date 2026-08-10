@@ -26,7 +26,7 @@ setupScreenlyMock({}, BASE_SETTINGS)
 
 const {
   refreshToken,
-  getRuntimeState,
+  salesforceConnectionState,
   NO_CREDENTIALS_MESSAGE,
   CACHE_NAMESPACE,
   ScreenlyBackendError,
@@ -88,8 +88,8 @@ describe('credential caching before any successful refresh', () => {
     )
 
     expect(readEdgeAppCache).not.toHaveBeenCalled()
-    expect(getRuntimeState().accessToken).toBeNull()
-    expect(getRuntimeState().instanceUrl).toBeNull()
+    expect(salesforceConnectionState.accessToken).toBeNull()
+    expect(salesforceConnectionState.instanceUrl).toBeNull()
   })
 
   test('repopulates from cache once, then stops re-reading once an instance url is set', async () => {
@@ -105,8 +105,10 @@ describe('credential caching before any successful refresh', () => {
       'credentials'
     )
     expect(readEdgeAppCache).toHaveBeenCalledTimes(1)
-    expect(getRuntimeState().accessToken).toBe('cached-token')
-    expect(getRuntimeState().instanceUrl).toBe('https://cached.salesforce.com')
+    expect(salesforceConnectionState.accessToken).toBe('cached-token')
+    expect(salesforceConnectionState.instanceUrl).toBe(
+      'https://cached.salesforce.com'
+    )
 
     await expect(refreshToken()).rejects.toThrow(
       "Screenly's server could not be reached"
@@ -120,7 +122,7 @@ describe('successful refresh', () => {
     succeed()
     await refreshToken()
 
-    expect(getRuntimeState()).toEqual({
+    expect(salesforceConnectionState).toEqual({
       accessToken: 'abc',
       instanceUrl: 'https://na1.salesforce.com',
       credentialError: null,
@@ -167,7 +169,7 @@ describe('failed refresh once a session is established', () => {
 
   async function expectRefreshFailure(message: string) {
     await expect(refreshToken()).rejects.toThrow(message)
-    expect(getRuntimeState().credentialError?.message).toBe(message)
+    expect(salesforceConnectionState.credentialError?.message).toBe(message)
     expect(reportError).toHaveBeenCalledTimes(1)
   }
 
@@ -197,7 +199,7 @@ describe('failed refresh once a session is established', () => {
 
     await expect(refreshToken()).rejects.toThrow(networkFailure.message)
 
-    const { credentialError } = getRuntimeState()
+    const { credentialError } = salesforceConnectionState
     expect(credentialError).toBeInstanceOf(ScreenlyBackendError)
     expect(credentialError?.cause).toBe(networkFailure)
   })

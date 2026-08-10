@@ -40,15 +40,19 @@ const ACCESS_TOKEN = 'abc'
 const INSTANCE_URL = 'https://na1.salesforce.com'
 
 const refreshToken = mock(async () => {})
-const getRuntimeState = mock(() => ({
-  accessToken: ACCESS_TOKEN as string | null,
-  instanceUrl: INSTANCE_URL as string | null,
-  credentialError: null as Error | null,
-}))
+const salesforceConnectionState: {
+  accessToken: string | null
+  instanceUrl: string | null
+  credentialError: Error | null
+} = {
+  accessToken: ACCESS_TOKEN,
+  instanceUrl: INSTANCE_URL,
+  credentialError: null,
+}
 mock.module('./credentials', () => ({
   CACHE_NAMESPACE,
   refreshToken,
-  getRuntimeState,
+  salesforceConnectionState,
 }))
 
 const { refresh, inferSalesforceContentType } = await import('./content')
@@ -93,12 +97,9 @@ beforeEach(() => {
   renderSalesforceContent.mockClear()
   reportError.mockClear()
   refreshToken.mockClear()
-  getRuntimeState.mockClear()
-  getRuntimeState.mockReturnValue({
-    accessToken: ACCESS_TOKEN,
-    instanceUrl: INSTANCE_URL,
-    credentialError: null,
-  })
+  salesforceConnectionState.accessToken = ACCESS_TOKEN
+  salesforceConnectionState.instanceUrl = INSTANCE_URL
+  salesforceConnectionState.credentialError = null
 })
 
 describe('render success', () => {

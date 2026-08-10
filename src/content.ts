@@ -11,10 +11,10 @@ import {
 } from './api'
 import {
   CACHE_NAMESPACE,
-  getRuntimeState,
   refreshToken,
+  salesforceConnectionState,
   type Credentials,
-  type RuntimeState,
+  type SalesforceConnectionState,
 } from './credentials'
 import {
   renderSalesforceContent,
@@ -46,7 +46,7 @@ export function inferSalesforceContentType(): SalesforceContentType {
 type RenderContext = {
   contentId: string
   contentType: SalesforceContentType
-  runtimeState: RuntimeState
+  runtimeState: SalesforceConnectionState
   displayErrors: boolean
   showLabels: boolean
 }
@@ -112,7 +112,7 @@ async function getContent(
   }
 }
 
-function getCredentials(runtimeState: RuntimeState): Credentials {
+function getCredentials(runtimeState: SalesforceConnectionState): Credentials {
   const { accessToken, instanceUrl, credentialError } = runtimeState
 
   if (accessToken && instanceUrl) {
@@ -128,7 +128,7 @@ export async function refresh(): Promise<void> {
   const context: RenderContext = {
     contentId: getSettingWithDefault<string>('content_id', ''),
     contentType: inferSalesforceContentType(),
-    runtimeState: getRuntimeState(),
+    runtimeState: salesforceConnectionState,
     displayErrors: getSettingWithDefault<boolean>('display_errors', false),
     showLabels: getSettingWithDefault<boolean>('show_labels', false),
   }
