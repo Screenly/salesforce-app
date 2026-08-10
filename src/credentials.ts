@@ -10,8 +10,8 @@ export const CACHE_NAMESPACE = 'salesforce-edge-app:v1'
 export type RefreshToken = () => Promise<void>
 export type Credentials = { accessToken: string; instanceUrl: string }
 export type SalesforceConnectionState = {
-  accessToken: string | null
-  instanceUrl: string | null
+  accessToken: string
+  instanceUrl: string
   credentialError: Error | null
 }
 
@@ -51,7 +51,7 @@ async function parseCredentialsResponse(response: Response): Promise<{
 }
 
 async function fetchCredentials(
-  fallbackInstanceUrl: string | null
+  fallbackInstanceUrl: string
 ): Promise<{ token: string; instanceUrl: string }> {
   let response: Response
   try {
@@ -83,37 +83,9 @@ async function fetchCredentials(
 }
 
 export const salesforceConnectionState: SalesforceConnectionState = {
-  accessToken: getSettingWithDefault('access_token', '') || null,
-  instanceUrl: null,
+  accessToken: getSettingWithDefault('access_token', ''),
+  instanceUrl: '',
   credentialError: null,
-}
-
-function applySuccessfulRefresh(token: string, instanceUrl: string): void {
-  salesforceConnectionState.accessToken = token
-  salesforceConnectionState.instanceUrl = instanceUrl
-  salesforceConnectionState.credentialError = null
-  writeEdgeAppCache(CACHE_NAMESPACE, 'credentials', {
-    accessToken: token,
-    instanceUrl,
-  })
-}
-
-function applyFailedRefresh(err: unknown): void {
-  const error = err instanceof Error ? err : new Error(String(err))
-  const displayErrors = getSettingWithDefault<boolean>('display_errors', false)
-
-  reportError(error, { source: 'salesforce-credentials' })
-  salesforceConnectionState.credentialError = error
-
-  if (salesforceConnectionState.instanceUrl || displayErrors) {
-    throw error
-  }
-
-  const cached = readEdgeAppCache<Credentials>(CACHE_NAMESPACE, 'credentials')
-  if (cached) {
-    salesforceConnectionState.accessToken = cached.accessToken
-    salesforceConnectionState.instanceUrl = cached.instanceUrl
-  }
 }
 
 export const refreshToken: RefreshToken = async () => {
@@ -121,8 +93,33 @@ export const refreshToken: RefreshToken = async () => {
     const { token, instanceUrl } = await fetchCredentials(
       salesforceConnectionState.instanceUrl
     )
-    applySuccessfulRefresh(token, instanceUrl)
+    salesforceConnectionState.accessToken = token
+    salesforceConnectionState.instanceUrl = instanceUrl
+    salesforceConnectionState.credentialError = null
+    writeEdgeAppCache(CACHE_NAMESPACE, 'credentials', {
+      accessToken: token,
+      instanceUrl,
+    })
   } catch (err) {
-    applyFailedRefresh(err)
+    const error = err instanceof Error ? err : new Error(String(err))
+    const displayErrors = getSettingWithDefault<boolean>(
+      'display_errors',
+      false
+    )
+
+    reportError(error, { source: 'salesforce-credentials' })
+    salesforceConnectionState.credentialError = error
+
+    if (salesforceConnectionState.instanceUrl || displayErrors) {
+      throw error
+    }
+
+    const cached = readEdgeAppCache<Credentials>(CACHE_NAMESPACE, 'credentials')
+    if (!cached) {
+      throw error
+    }
+
+    salesforceConnectionState.accessToken = cached.accessToken
+    salesforceConnectionState.instanceUrl = cached.instanceUrl
   }
 }

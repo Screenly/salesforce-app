@@ -112,11 +112,7 @@ async function getContent(
 export async function refresh(): Promise<void> {
   await refreshToken()
 
-  const { accessToken, instanceUrl, credentialError } =
-    salesforceConnectionState
-  if (!accessToken || !instanceUrl) {
-    throw new Error(credentialError!.message)
-  }
+  const { accessToken, instanceUrl } = salesforceConnectionState
 
   const context: RenderContext = {
     contentId: getSettingWithDefault<string>('content_id', ''),

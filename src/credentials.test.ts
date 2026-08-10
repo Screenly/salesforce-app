@@ -63,6 +63,9 @@ const originalFetch = globalThis.fetch
 
 beforeEach(() => {
   setupScreenlyMock({}, BASE_SETTINGS)
+  salesforceConnectionState.accessToken = ''
+  salesforceConnectionState.instanceUrl = ''
+  salesforceConnectionState.credentialError = null
   reportError.mockClear()
   readEdgeAppCache.mockClear()
   readEdgeAppCache.mockReturnValue(null)
@@ -77,6 +80,8 @@ afterEach(() => {
 describe('credential caching before any successful refresh', () => {
   test('does not consult the cache when display_errors is on', async () => {
     setupScreenlyMock({}, { ...BASE_SETTINGS, display_errors: 'true' })
+    salesforceConnectionState.accessToken = 'preexisting-token'
+    salesforceConnectionState.instanceUrl = 'https://preexisting.salesforce.com'
     readEdgeAppCache.mockReturnValue({
       accessToken: 'cached-token',
       instanceUrl: 'https://cached.salesforce.com',
@@ -88,8 +93,10 @@ describe('credential caching before any successful refresh', () => {
     )
 
     expect(readEdgeAppCache).not.toHaveBeenCalled()
-    expect(salesforceConnectionState.accessToken).toBeNull()
-    expect(salesforceConnectionState.instanceUrl).toBeNull()
+    expect(salesforceConnectionState.accessToken).toBe('preexisting-token')
+    expect(salesforceConnectionState.instanceUrl).toBe(
+      'https://preexisting.salesforce.com'
+    )
   })
 
   test('repopulates from cache once, then stops re-reading once an instance url is set', async () => {
