@@ -13,8 +13,6 @@ import {
   CACHE_NAMESPACE,
   refreshToken,
   salesforceConnectionState,
-  type Credentials,
-  type SalesforceConnectionState,
 } from './credentials'
 import {
   renderSalesforceContent,
@@ -46,7 +44,6 @@ export function inferSalesforceContentType(): SalesforceContentType {
 type RenderContext = {
   contentId: string
   contentType: SalesforceContentType
-  runtimeState: SalesforceConnectionState
   displayErrors: boolean
   showLabels: boolean
 }
@@ -112,33 +109,23 @@ async function getContent(
   return cached
 }
 
-function getCredentials(runtimeState: SalesforceConnectionState): Credentials {
-  const { accessToken, instanceUrl, credentialError } = runtimeState
-
-  if (accessToken && instanceUrl) {
-    return { accessToken, instanceUrl }
-  }
-
-  throw new Error(credentialError!.message)
-}
-
 export async function refresh(): Promise<void> {
   await refreshToken()
+
+  const { accessToken, instanceUrl, credentialError } =
+    salesforceConnectionState
+  if (!accessToken || !instanceUrl) {
+    throw new Error(credentialError!.message)
+  }
 
   const context: RenderContext = {
     contentId: getSettingWithDefault<string>('content_id', ''),
     contentType: inferSalesforceContentType(),
-    runtimeState: salesforceConnectionState,
     displayErrors: getSettingWithDefault<boolean>('display_errors', false),
     showLabels: getSettingWithDefault<boolean>('show_labels', false),
   }
 
-  const credentials = getCredentials(context.runtimeState)
-  const results = await getContent(
-    context,
-    credentials.accessToken,
-    credentials.instanceUrl
-  )
+  const results = await getContent(context, accessToken, instanceUrl)
 
   renderSalesforceContent({
     contentType: context.contentType,
