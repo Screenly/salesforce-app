@@ -50,9 +50,10 @@ async function parseCredentialsResponse(response: Response): Promise<{
   return { token, metadata }
 }
 
-async function fetchCredentials(
-  fallbackInstanceUrl: string
-): Promise<{ token: string; instanceUrl: string }> {
+async function fetchCredentials(): Promise<{
+  token: string
+  instanceUrl: string
+}> {
   let response: Response
   try {
     response = await fetch(
@@ -73,7 +74,7 @@ async function fetchCredentials(
   }
 
   const { token, metadata } = await parseCredentialsResponse(response)
-  const instanceUrl = metadata?.instance_url ?? fallbackInstanceUrl
+  const instanceUrl = metadata?.instance_url
 
   if (!token || !instanceUrl) {
     throw new ScreenlyBackendError(NO_CREDENTIALS_MESSAGE)
@@ -90,9 +91,7 @@ export const salesforceConnectionState: SalesforceConnectionState = {
 
 export const refreshToken: RefreshToken = async () => {
   try {
-    const { token, instanceUrl } = await fetchCredentials(
-      salesforceConnectionState.instanceUrl
-    )
+    const { token, instanceUrl } = await fetchCredentials()
     salesforceConnectionState.accessToken = token
     salesforceConnectionState.instanceUrl = instanceUrl
     salesforceConnectionState.credentialError = null
