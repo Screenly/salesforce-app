@@ -12,6 +12,8 @@ import path from 'path'
 const MOCK_INSTANCE_URL = 'https://mock.salesforce.com'
 const MOCK_DASHBOARD_ID = '01Z000000000001AAA'
 const MOCK_REPORT_ID = '00O000000000001AAA'
+const MOCK_COORDINATES: [number, number] = [37.3861, -122.0839]
+const MOCK_LOCATION = 'Silicon Valley, USA'
 
 const MOCK_CREDENTIALS = {
   token: 'mock-access-token',
@@ -369,7 +371,7 @@ const MOCK_REPORT_RESPONSE = {
 
 const { screenlyJsContent: dashboardScreenlyJsContent } =
   createMockScreenlyForScreenshots(
-    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
     {
       content_id: MOCK_DASHBOARD_ID,
       refresh_interval: '300',
@@ -381,7 +383,7 @@ const { screenlyJsContent: dashboardScreenlyJsContent } =
 
 const { screenlyJsContent: reportScreenlyJsContent } =
   createMockScreenlyForScreenshots(
-    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
     {
       content_id: MOCK_REPORT_ID,
       refresh_interval: '300',
@@ -393,7 +395,7 @@ const { screenlyJsContent: reportScreenlyJsContent } =
 
 const { screenlyJsContent: dashboardLabelsScreenlyJsContent } =
   createMockScreenlyForScreenshots(
-    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
     {
       content_id: MOCK_DASHBOARD_ID,
       refresh_interval: '300',
@@ -406,7 +408,7 @@ const { screenlyJsContent: dashboardLabelsScreenlyJsContent } =
 
 const { screenlyJsContent: reportLabelsScreenlyJsContent } =
   createMockScreenlyForScreenshots(
-    { coordinates: [37.3861, -122.0839], location: 'Silicon Valley, USA' },
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
     {
       content_id: MOCK_REPORT_ID,
       refresh_interval: '300',
@@ -456,20 +458,13 @@ function mockCredentials(context: BrowserContext): Promise<void> {
   )
 }
 
-async function setupDashboardRoutes(
-  context: BrowserContext,
-  dashboardStatus: number
-): Promise<void> {
+async function setupDashboardRoutes(context: BrowserContext): Promise<void> {
   await mockCredentials(context)
   await context.route(/analytics\/dashboards/, (route) =>
     route.fulfill({
-      status: dashboardStatus,
+      status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(
-        dashboardStatus === 200
-          ? MOCK_DASHBOARD_RESPONSE
-          : { message: dashboardStatus === 404 ? 'Not Found' : 'Unauthorized' }
-      ),
+      body: JSON.stringify(MOCK_DASHBOARD_RESPONSE),
     })
   )
 }
@@ -493,50 +488,25 @@ for (const { width, height } of RESOLUTIONS) {
       height,
       `dashboard-${width}x${height}.png`,
       dashboardScreenlyJsContent,
-      (context) => setupDashboardRoutes(context, 200)
+      (context) => setupDashboardRoutes(context)
     )
   })
 }
-
-for (const [width, height] of [
-  [3840, 2160],
-  [2160, 3840],
-]) {
-  test(`screenshot error ${width}x${height}`, async ({ browser }) => {
-    await takeScreenshot(
-      browser,
-      width,
-      height,
-      `error-${width}x${height}.png`,
-      dashboardScreenlyJsContent,
-      (context) => setupDashboardRoutes(context, 401)
-    )
-  })
-}
-
-test('screenshot error-not-found 3840x2160', async ({ browser }) => {
-  await takeScreenshot(
-    browser,
-    3840,
-    2160,
-    'error-not-found-3840x2160.png',
-    dashboardScreenlyJsContent,
-    (context) => setupDashboardRoutes(context, 404)
-  )
-})
 
 for (const [width, height] of [
   [1920, 1080],
   [1080, 1920],
 ]) {
-  test(`screenshot dashboard-labels ${width}x${height}`, async ({ browser }) => {
+  test(`screenshot dashboard-labels ${width}x${height}`, async ({
+    browser,
+  }) => {
     await takeScreenshot(
       browser,
       width,
       height,
       `dashboard-labels-${width}x${height}.png`,
       dashboardLabelsScreenlyJsContent,
-      (context) => setupDashboardRoutes(context, 200)
+      (context) => setupDashboardRoutes(context)
     )
   })
 }

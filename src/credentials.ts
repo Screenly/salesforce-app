@@ -1,20 +1,24 @@
-import { getSettingWithDefault } from '@screenly/edge-apps'
-import { reportError } from '@screenly/edge-apps/utils'
-import { readCachedCredentials, writeCachedCredentials } from './cache'
-import { BackendServerError, shouldSkipBackendError } from './errors'
-import type { SalesforceContentType } from './types'
+import {
+  getSettingWithDefault,
+  readEdgeAppCache,
+  reportError,
+  writeEdgeAppCache,
+} from '@screenly/edge-apps/utils'
+
+export const CACHE_NAMESPACE = 'salesforce-edge-app:v1'
 
 export type RefreshToken = () => Promise<void>
-export type RuntimeState = {
-  accessToken: string | null
-  instanceUrl: string | null
+export type Credentials = { accessToken: string; instanceUrl: string }
+export type SalesforceConnectionState = {
+  accessToken: string
+  instanceUrl: string
   credentialError: Error | null
 }
 
-export { BackendServerError } from './errors'
-
 export const NO_CREDENTIALS_MESSAGE =
   'No access token or instance URL available.'
+
+export class ScreenlyBackendError extends Error {}
 
 type CredentialsResponse = {
   token?: string
@@ -22,32 +26,12 @@ type CredentialsResponse = {
   error?: string
 }
 
-async function requestCredentials(): Promise<Response> {
-  try {
-    return await fetch(
-      `${screenly.settings.screenly_oauth_tokens_url}access_token/`,
-      {
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${screenly.settings.screenly_app_auth_token}`,
-        },
-      }
-    )
-  } catch (err) {
-    throw new BackendServerError(
-      `Screenly's server could not be reached (${err instanceof Error ? err.message : String(err)}).`
-    )
-  }
-}
-
 async function parseCredentialsResponse(response: Response): Promise<{
   token?: string
   metadata?: { instance_url?: string }
 }> {
   if (response.status >= 500 || response.status === 429) {
-    throw new BackendServerError(
-      `Screenly's server had a problem (${response.status}).`
-    )
+    throw new Error(`Screenly's server had a problem (${response.status}).`)
   }
 
   const body = (await response.json().catch(() => undefined)) as
@@ -67,88 +51,74 @@ async function parseCredentialsResponse(response: Response): Promise<{
 }
 
 async function fetchCredentials(): Promise<{
-  token?: string
-  metadata?: { instance_url?: string }
+  token: string
+  instanceUrl: string
 }> {
-  const response = await requestCredentials()
-  return parseCredentialsResponse(response)
-}
-
-type CredentialManagerState = RuntimeState & {
-  hasReportedCredentialError: boolean
-}
-
-export function createCredentialManager(
-  contentId: string,
-  contentType: SalesforceContentType,
-  displayErrors: boolean
-): { refreshToken: RefreshToken; getRuntimeState: () => RuntimeState } {
-  const state: CredentialManagerState = {
-    accessToken: getSettingWithDefault('access_token', '') || null,
-    instanceUrl: null,
-    credentialError: null,
-    hasReportedCredentialError: false,
-  }
-
-  function applySuccessfulRefresh(token: string, instanceUrl: string): void {
-    state.accessToken = token
-    state.instanceUrl = instanceUrl
-    state.credentialError = null
-    state.hasReportedCredentialError = false
-    writeCachedCredentials({ accessToken: token, instanceUrl })
-  }
-
-  function applyFailedRefresh(err: unknown): Error {
-    const error = err instanceof Error ? err : new Error(String(err))
-
-    if (!state.hasReportedCredentialError) {
-      reportError(error, {
-        source: 'salesforce-credentials',
-        contentId,
-        contentType,
-      })
-      state.hasReportedCredentialError = true
-    }
-
-    state.credentialError = error
-
-    // Cache reads are gated on `!state.instanceUrl` so a manager that has
-    // already recovered credentials (live or cached) never overwrites them
-    // with a possibly-stale cache entry on a later failed refresh.
-    if (state.instanceUrl || !shouldSkipBackendError(error, displayErrors)) {
-      return error
-    }
-
-    const cached = readCachedCredentials()
-    if (cached) {
-      state.accessToken = cached.accessToken
-      state.instanceUrl = cached.instanceUrl
-    }
-
-    return error
-  }
-
-  const refreshToken = async () => {
-    try {
-      const { token, metadata } = await fetchCredentials()
-      const nextInstanceUrl = metadata?.instance_url ?? state.instanceUrl
-
-      if (!token || !nextInstanceUrl) {
-        throw new Error(NO_CREDENTIALS_MESSAGE)
+  let response: Response
+  try {
+    response = await fetch(
+      `${screenly.settings.screenly_oauth_tokens_url}access_token/`,
+      {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${screenly.settings.screenly_app_auth_token}`,
+        },
       }
-
-      applySuccessfulRefresh(token, nextInstanceUrl)
-    } catch (err) {
-      throw applyFailedRefresh(err)
-    }
+    )
+  } catch (err) {
+    const cause = err instanceof Error ? err : new Error(String(err))
+    throw new ScreenlyBackendError(
+      `Screenly's server could not be reached (${cause.message}).`,
+      { cause }
+    )
   }
 
-  return {
-    refreshToken,
-    getRuntimeState: () => ({
-      accessToken: state.accessToken,
-      instanceUrl: state.instanceUrl,
-      credentialError: state.credentialError,
-    }),
+  const { token, metadata } = await parseCredentialsResponse(response)
+  const instanceUrl = metadata?.instance_url
+
+  if (!token || !instanceUrl) {
+    throw new ScreenlyBackendError(NO_CREDENTIALS_MESSAGE)
+  }
+
+  return { token, instanceUrl }
+}
+
+export const salesforceConnectionState: SalesforceConnectionState = {
+  accessToken: getSettingWithDefault('access_token', ''),
+  instanceUrl: '',
+  credentialError: null,
+}
+
+export const refreshToken: RefreshToken = async () => {
+  try {
+    const { token, instanceUrl } = await fetchCredentials()
+    salesforceConnectionState.accessToken = token
+    salesforceConnectionState.instanceUrl = instanceUrl
+    salesforceConnectionState.credentialError = null
+    writeEdgeAppCache(CACHE_NAMESPACE, 'credentials', {
+      accessToken: token,
+      instanceUrl,
+    })
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err))
+    const displayErrors = getSettingWithDefault<boolean>(
+      'display_errors',
+      false
+    )
+
+    reportError(error, { source: 'salesforce-credentials' })
+    salesforceConnectionState.credentialError = error
+
+    if (salesforceConnectionState.instanceUrl || displayErrors) {
+      throw error
+    }
+
+    const cached = readEdgeAppCache<Credentials>(CACHE_NAMESPACE, 'credentials')
+    if (!cached) {
+      throw error
+    }
+
+    salesforceConnectionState.accessToken = cached.accessToken
+    salesforceConnectionState.instanceUrl = cached.instanceUrl
   }
 }
