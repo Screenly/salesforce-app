@@ -1,3 +1,5 @@
+[![Version](https://img.shields.io/github/v/release/Screenly/salesforce-app)](https://github.com/Screenly/salesforce-app/releases/latest)
+
 # Salesforce Analytics App
 
 Displays Salesforce dashboards and reports on your Screenly digital signage screens using the Salesforce Reports & Dashboards REST API.
