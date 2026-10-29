@@ -1,3 +1,5 @@
+[![Version](https://img.shields.io/github/v/release/Screenly/salesforce-app)](https://github.com/Screenly/salesforce-app/releases/latest)
+
 # Salesforce Analytics App
 
 Displays Salesforce dashboards and reports on your Screenly digital signage screens using the Salesforce Reports & Dashboards REST API.
@@ -80,6 +82,13 @@ screenly edge-app create --name salesforce-app --in-place
 bun run deploy
 screenly edge-app instance create
 ```
+
+In CI, **Update Edge App** (`.github/workflows/update-edge-app.yml`) deploys pushes to
+`development` to stage and pushes to `main` to production, using
+[edge-apps-actions](https://github.com/Screenly/edge-apps-actions) `update@v26.10.2`.
+Both deploys wait for approval in the GitHub `stage` and `production` environments.
+The Edge App ids come from the `STAGE_EDGE_APP_ID` and `PRODUCTION_EDGE_APP_ID`
+repository variables; run **Initialize Edge App** once per environment to create the app.
 
 ## Configuration
 
