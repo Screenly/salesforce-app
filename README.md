@@ -83,12 +83,23 @@ bun run deploy
 screenly edge-app instance create
 ```
 
-In CI, **Update Edge App** (`.github/workflows/update-edge-app.yml`) deploys pushes to
-`development` to stage and pushes to `main` to production, using
-[edge-apps-actions](https://github.com/Screenly/edge-apps-actions) `update@v26.10.2`.
-Both deploys wait for approval in the GitHub `stage` and `production` environments.
-The Edge App ids come from the `STAGE_EDGE_APP_ID` and `PRODUCTION_EDGE_APP_ID`
-repository variables; run **Initialize Edge App** once per environment to create the app.
+### Releasing
+
+Pushes to `main` start a stage deploy, which waits for approval. To release to production, tag a commit on `main` and push the tag (the workflow refuses tags not on `main`); the production deploy also waits for approval:
+
+```bash
+git checkout main && git pull
+git tag v26.10.0
+git push origin v26.10.0
+```
+
+Then publish a GitHub Release whose notes list the pull requests merged since the previous release. Add `--draft` to review the notes before publishing:
+
+```bash
+gh release create v26.10.0 --verify-tag --generate-notes --title v26.10.0
+```
+
+The Edge App ids come from the `STAGE_EDGE_APP_ID` and `PRODUCTION_EDGE_APP_ID` repository variables; run **Initialize Edge App** once per environment to create the app.
 
 ## Configuration
 
