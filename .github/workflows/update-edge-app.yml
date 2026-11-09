@@ -2,74 +2,21 @@
 name: Update Edge App
 
 on:
+  workflow_dispatch:
   push:
     branches:
-      - development
       - main
+      - master
+    tags:
+      - 'v[0-9]*'
 
-run-name: Updating Salesforce App in ${{ github.ref == 'refs/heads/main' && 'production' || 'stage' }}
+permissions:
+  contents: read
+
+run-name: Updating Salesforce App in ${{ (github.event_name == 'push' && !github.event.deleted && startsWith(github.ref, 'refs/tags/v')) && 'production' || 'stage' }}
 
 jobs:
-  deploy-stage:
-    name: Updating Salesforce App in stage
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/development'
-    environment: stage
-    steps:
-      - uses: actions/checkout@v6
-      - name: Screenly API whoami
-        env:
-          SCREENLY_API_TOKEN: ${{ secrets.SCREENLY_API_TOKEN }}
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
-        run: |
-          set -euo pipefail
-          current_user=$(
-            curl -fsSL -H "Authorization: Token ${SCREENLY_API_TOKEN}" \
-              "${API_BASE_URL}/api/v4.1/users" \
-              | jq -r '.[0] | "\(.first_name) \(.last_name) <\(.email)>"'
-          )
-          echo "Current user: ${current_user}"
-          current_team=$(
-            curl -fsSL -H "Authorization: Token ${SCREENLY_API_TOKEN}" \
-              "${API_BASE_URL}/api/v4.1/teams" \
-              | jq -r '.[] | select(.is_current == true)
-                      | "\(.name) (\(.domain))"'
-          )
-          echo "Current team: ${current_team}"
-      - uses: Screenly/edge-apps-actions/update@v1
-        with:
-          screenly_api_token: ${{ secrets.SCREENLY_API_TOKEN }}
-          environment: stage
-          delete_missing_settings: 'true'
-
-  deploy-production:
-    name: Updating Salesforce App in production
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    steps:
-      - uses: actions/checkout@v6
-      - name: Screenly API whoami
-        env:
-          SCREENLY_API_TOKEN: ${{ secrets.SCREENLY_API_TOKEN }}
-          API_BASE_URL: ${{ vars.API_BASE_URL }}
-        run: |
-          set -euo pipefail
-          current_user=$(
-            curl -fsSL -H "Authorization: Token ${SCREENLY_API_TOKEN}" \
-              "${API_BASE_URL}/api/v4.1/users" \
-              | jq -r '.[0] | "\(.first_name) \(.last_name) <\(.email)>"'
-          )
-          echo "Current user: ${current_user}"
-          current_team=$(
-            curl -fsSL -H "Authorization: Token ${SCREENLY_API_TOKEN}" \
-              "${API_BASE_URL}/api/v4.1/teams" \
-              | jq -r '.[] | select(.is_current == true)
-                      | "\(.name) (\(.domain))"'
-          )
-          echo "Current team: ${current_team}"
-      - uses: Screenly/edge-apps-actions/update@v1
-        with:
-          screenly_api_token: ${{ secrets.SCREENLY_API_TOKEN }}
-          environment: production
-          delete_missing_settings: 'true'
+  update:
+    uses: Screenly/edge-apps-actions/.github/workflows/update.yml@v26.10.2
+    secrets:
+      SCREENLY_API_TOKEN: ${{ secrets.SCREENLY_API_TOKEN }}

@@ -1,6 +1,5 @@
 ---
 syntax: manifest_v1
-id: 01KRZ194MADE1FJAAH0V3G85A7
 description: Display Salesforce dashboards and reports on your Screenly screens
 icon: https://playground.srly.io/edge-apps/icons/salesforce.svg
 author: Screenly, Inc.
