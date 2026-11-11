@@ -21,8 +21,7 @@ export function mountGauge(
     reportResult.factMap?.['T!T']?.aggregates?.[0]?.value ?? 0
   )
   const vizProps = meta.properties.visualizationProperties as
-    | GaugeVisualizationProperties
-    | undefined
+    GaugeVisualizationProperties | undefined
   const breaks = vizProps?.breakPoints?.[0]?.breaks ?? []
 
   if (breaks.length === 0) {
