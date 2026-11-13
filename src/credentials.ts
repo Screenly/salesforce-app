@@ -35,8 +35,7 @@ async function parseCredentialsResponse(response: Response): Promise<{
   }
 
   const body = (await response.json().catch(() => undefined)) as
-    | CredentialsResponse
-    | undefined
+    CredentialsResponse | undefined
 
   if (!response.ok) {
     throw new Error(
