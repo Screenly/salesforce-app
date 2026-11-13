@@ -6,8 +6,7 @@ export function extractTableColumns(
   reportResult: ReportResult
 ): TableColumn[] {
   const vizProps = meta.properties.visualizationProperties as
-    | { tableColumns?: { column: string }[] }
-    | undefined
+    { tableColumns?: { column: string }[] } | undefined
   const vizTableColumns = vizProps?.tableColumns ?? []
 
   const detailColumns =
