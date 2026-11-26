@@ -13,10 +13,12 @@ export interface ReportResult {
   reportExtendedMetadata?: {
     detailColumnInfo?: Record<string, { label: string; dataType: string }>
     aggregateColumnInfo?: Record<string, { label: string; dataType: string }>
+    groupingColumnInfo?: Record<string, { label: string; dataType?: string }>
   }
   reportMetadata?: {
     detailColumns?: string[]
     aggregates?: string[]
+    groupingsDown?: { name: string }[]
     chart?: {
       chartType?: string
     }
@@ -31,6 +33,7 @@ export interface ComponentDataItem {
   status: {
     componentDataStatus: string
     refreshStatus: string
+    refreshDate?: string | null
   }
 }
 
@@ -54,6 +57,7 @@ export interface DashboardMetadataComponent {
   id: string
   header: string | null
   title: string | null
+  footer?: string | null
   reportId: string
   type: string
   properties: {

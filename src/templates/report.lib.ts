@@ -2,9 +2,10 @@ import { createRef } from 'lit-html/directives/ref.js'
 import type { DashboardMetadataComponent, ReportResult } from '../types'
 import type { Card } from './card.types'
 import { mountChart } from './chart'
-import { mapChartType } from './chart.lib'
+import { getAggregateLabel, getGroupingLabel, mapChartType } from './chart.lib'
 import type { ChartKind } from './chart.types'
 import { mountEmpty } from './empty'
+import type { RenderOptions } from './index.types'
 import { mountStat } from './stat'
 import { mountTable } from './table'
 
@@ -39,7 +40,7 @@ export function reportChartCard(
   reportResult: ReportResult,
   reportName: string,
   chartKind: ChartKind,
-  showLabels: boolean
+  options: RenderOptions
 ): Card | null {
   if (!hasGroupedReportData(reportResult)) return null
 
@@ -50,14 +51,14 @@ export function reportChartCard(
     gridStyle: 'grid-column: 1 / span 12',
     contentRef: createRef<HTMLDivElement>(),
     draw: (container) =>
-      mountChart(
-        container,
-        contentId,
-        reportResult,
-        chartKind,
-        reportName,
-        showLabels
-      ),
+      mountChart(container, contentId, reportResult, chartKind, {
+        title: reportName,
+        theme: options.theme,
+        showLabels: options.showLabels,
+        showTotal: true,
+        valueLabel: getAggregateLabel(reportResult),
+        groupingLabel: getGroupingLabel(reportResult),
+      }),
   }
 }
 
@@ -119,7 +120,7 @@ export function buildReportCards(
   contentId: string,
   reportResult: ReportResult,
   reportName: string,
-  showLabels: boolean
+  options: RenderOptions
 ): Card[] {
   const cards = [
     reportChartCard(
@@ -127,7 +128,7 @@ export function buildReportCards(
       reportResult,
       reportName,
       mapChartType(getReportChartType(reportResult) ?? 'Column'),
-      showLabels
+      options
     ),
     reportTableCard(contentId, reportResult, reportName),
   ].filter((card): card is Card => card !== null)

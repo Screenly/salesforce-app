@@ -1,6 +1,7 @@
 import { renderDashboard } from './dashboard'
 import { renderReport } from './report'
-import type { RenderableSalesforceContent } from './index.types'
+import type { RenderableSalesforceContent, RenderOptions } from './index.types'
+import { applyThemeMode, resolveThemeMode } from './theme'
 
 export type { RenderableSalesforceContent } from './index.types'
 
@@ -12,10 +13,23 @@ function showDashboardContainer(): void {
 export function renderSalesforceContent(
   content: RenderableSalesforceContent
 ): void {
+  const theme = resolveThemeMode(
+    content.themeSetting,
+    content.contentType === 'dashboard' ? content.results : null
+  )
+  applyThemeMode(theme)
+
+  const options: RenderOptions = {
+    showLabels: content.showLabels,
+    theme,
+    locale: content.locale,
+    timeZone: content.timeZone,
+  }
+
   if (content.contentType === 'dashboard') {
-    renderDashboard(content.results, content.showLabels)
+    renderDashboard(content.results, options)
   } else {
-    renderReport(content.contentId, content.results, content.showLabels)
+    renderReport(content.contentId, content.results, options)
   }
 
   showDashboardContainer()

@@ -4,9 +4,31 @@
 @import '@screenly/edge-apps/styles' layer(base);
 @import 'tailwindcss/utilities.css' layer(utilities);
 
+/* Light follows the native Salesforce Lightning dashboard. */
+:root,
+:root[data-theme='light'] {
+  --page-bg: #f3f3f3;
+  --surface: #ffffff;
+  --border: #e5e5e5;
+  --text: #181818;
+  --text-muted: #5c5c5c;
+  --link: #0176d3;
+  --card-shadow: 0 2px 2px 0 rgb(0 0 0 / 0.1);
+}
+
+:root[data-theme='dark'] {
+  --page-bg: #111111;
+  --surface: #1a1a1a;
+  --border: #2a2a2a;
+  --text: #f2f2f3;
+  --text-muted: #9d9d9f;
+  --link: #78b0fd;
+  --card-shadow: none;
+}
+
 @layer components {
   .header {
-    @apply flex-shrink-0 rounded-xl py-2 px-5 bg-[#1a1a1a] border border-[#2a2a2a];
+    @apply flex-shrink-0 rounded-xl py-2 px-5 bg-(--surface) border border-(--border) text-(--text) shadow-(--card-shadow);
   }
 
   .dashboard-container {
@@ -14,23 +36,43 @@
   }
 
   .dashboard-title {
-    @apply text-[2rem] font-semibold text-[#f2f2f3] tracking-[-0.03em] flex-shrink-0;
+    @apply text-[2rem] font-semibold text-(--text) tracking-[-0.03em] flex-shrink-0;
   }
 
   .charts-grid {
-    @apply grid gap-5 flex-1 overflow-auto content-start;
+    @apply grid gap-4 flex-1 overflow-auto content-start;
   }
 
   .chart-card {
-    @apply bg-[#1a1a1a] border border-[#2a2a2a] rounded-3xl py-7 px-8 flex flex-col gap-4 min-h-0 overflow-hidden;
+    @apply bg-(--surface) border border-(--border) shadow-(--card-shadow) rounded-2xl py-5 px-6 flex flex-col gap-3 min-h-0 overflow-hidden;
+  }
+
+  .chart-heading {
+    @apply flex flex-col gap-0.5 flex-shrink-0 min-w-0;
   }
 
   .chart-title {
-    @apply text-xs font-semibold tracking-[0.08em] uppercase text-[#9d9d9f] flex-shrink-0;
+    @apply m-0 text-lg font-normal leading-snug text-(--text) truncate;
+  }
+
+  .chart-subtitle {
+    @apply m-0 text-base leading-snug text-(--link) truncate;
   }
 
   .chart-container {
     @apply flex-1 relative min-h-0 [container-type:size];
+  }
+
+  .chart-footer {
+    @apply flex justify-between items-end gap-4 flex-shrink-0 text-sm text-(--text-muted);
+  }
+
+  .chart-footer-note {
+    @apply truncate;
+  }
+
+  .chart-footer-date {
+    @apply whitespace-nowrap;
   }
 
   .report-chart-card {
@@ -54,19 +96,19 @@
   }
 
   .report-stat-value {
-    @apply text-[clamp(3rem,7vw,6rem)] font-bold leading-[0.95] tracking-[-0.06em] text-[#f2f2f3];
+    @apply text-[clamp(3rem,7vw,6rem)] font-bold leading-[0.95] tracking-[-0.06em] text-(--text);
   }
 
   .report-stat-label {
-    @apply text-sm font-semibold tracking-[0.08em] uppercase text-[#9d9d9f];
+    @apply text-sm font-semibold tracking-[0.08em] uppercase text-(--text-muted);
   }
 
   .metric-value {
-    @apply flex items-center justify-center w-full h-full text-[clamp(2rem,30cqh,20rem)] font-bold tracking-[-0.04em] text-[#f2f2f3] text-center;
+    @apply flex items-center justify-center w-full h-full text-[clamp(2rem,30cqh,20rem)] font-bold tracking-[-0.04em] text-(--text) text-center;
   }
 
   .empty-state {
-    @apply text-[#9d9d9f] text-sm text-center m-auto;
+    @apply text-(--text-muted) text-sm text-center m-auto;
   }
 
   .table-scroll {
@@ -74,14 +116,14 @@
   }
 
   .data-table {
-    @apply w-full border-collapse text-[#dadadb];
+    @apply w-full border-collapse text-(--text);
   }
 
   .data-table th {
-    @apply px-4 py-3 text-left text-xs font-semibold tracking-[0.08em] uppercase text-[#9d9d9f] whitespace-nowrap bg-[linear-gradient(#2a2a2a,#2a2a2a)] [background-size:100%_0.0625rem] bg-bottom bg-no-repeat;
+    @apply px-4 py-3 text-left text-xs font-semibold tracking-[0.08em] uppercase text-(--text-muted) whitespace-nowrap bg-[linear-gradient(var(--border),var(--border))] [background-size:100%_0.0625rem] bg-bottom bg-no-repeat;
   }
 
   .data-table td {
-    @apply px-4 py-3 text-[0.9rem] text-left whitespace-nowrap min-w-32 bg-[linear-gradient(#2a2a2a,#2a2a2a)] [background-size:100%_0.0625rem] bg-bottom bg-no-repeat group-last:bg-none;
+    @apply px-4 py-3 text-[0.9rem] text-left whitespace-nowrap min-w-32 bg-[linear-gradient(var(--border),var(--border))] [background-size:100%_0.0625rem] bg-bottom bg-no-repeat group-last:bg-none;
   }
 }

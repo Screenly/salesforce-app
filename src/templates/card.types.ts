@@ -2,6 +2,9 @@ import type { Ref } from 'lit-html/directives/ref.js'
 
 export type Card = {
   title: string
+  subtitle?: string
+  footer?: string
+  asOf?: string
   cardClassName?: string
   containerClassName?: string
   gridStyle?: string

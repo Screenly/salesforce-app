@@ -1,5 +1,7 @@
 import {
+  getLocale,
   getSettingWithDefault,
+  getTimeZone,
   readEdgeAppCache,
   reportError,
   writeEdgeAppCache,
@@ -18,6 +20,7 @@ import {
   renderSalesforceContent,
   type RenderableSalesforceContent,
 } from './templates'
+import { resolveThemeSetting } from './templates/theme'
 import type {
   DashboardResults,
   ReportResult,
@@ -39,6 +42,21 @@ export function inferSalesforceContentType(): SalesforceContentType {
   throw new Error(
     `Unsupported content ID prefix "${prefix}". Use a dashboard ID starting with ${DASHBOARD_PREFIX} or a report ID starting with ${REPORT_PREFIX}.`
   )
+}
+
+type LocaleContext = { locale: string; timeZone: string }
+
+let localeContext: Promise<LocaleContext> | undefined
+
+// Resolved once: the screen's locale and time zone do not change between refreshes.
+function getLocaleContext(): Promise<LocaleContext> {
+  localeContext ??= Promise.all([getLocale(), getTimeZone()])
+    .then(([locale, timeZone]) => ({ locale, timeZone }))
+    .catch(() => ({
+      locale: navigator.language || 'en',
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }))
+  return localeContext
 }
 
 type RenderContext = {
@@ -122,11 +140,17 @@ export async function refresh(): Promise<void> {
   }
 
   const results = await getContent(context, accessToken, instanceUrl)
+  const { locale, timeZone } = await getLocaleContext()
 
   renderSalesforceContent({
     contentType: context.contentType,
     contentId: context.contentId,
     results,
     showLabels: context.showLabels,
+    themeSetting: resolveThemeSetting(
+      getSettingWithDefault<string>('theme', 'salesforce')
+    ),
+    locale,
+    timeZone,
   } as RenderableSalesforceContent)
 }

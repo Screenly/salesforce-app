@@ -40,7 +40,10 @@ settings:
   refresh_interval: '300'
   screenly_app_auth_token: mock-token
   screenly_oauth_tokens_url: 'http://localhost:3000/'
+  theme: 'salesforce'
 ```
+
+`theme` is `salesforce` (follow the light or dark look set on the Salesforce dashboard), `light` or `dark`.
 
 ## Building
 
