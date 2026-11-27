@@ -26,13 +26,28 @@ function centerTotalPlugin(total: number): Plugin<'doughnut'> {
       if (!arc || !arc.innerRadius) return
 
       const { ctx } = chart
-      const fontSize = Math.max(14, Math.round(arc.innerRadius * 0.5))
+      const text = total.toLocaleString()
+      const font = (size: number) =>
+        `bold ${size}px ${Chart.defaults.font.family}`
+      // Start from half the hole radius, then shrink so the text stays
+      // within 80% of the hole's width, however long the number is.
+      const maxWidth = arc.innerRadius * 2 * 0.8
+      let fontSize = Math.round(arc.innerRadius * 0.5)
       ctx.save()
-      ctx.font = `bold ${fontSize}px ${Chart.defaults.font.family}`
+      ctx.font = font(fontSize)
+      const textWidth = ctx.measureText(text).width
+      if (textWidth > maxWidth) {
+        fontSize = Math.floor((fontSize * maxWidth) / textWidth)
+        ctx.font = font(fontSize)
+      }
+      if (fontSize < 8) {
+        ctx.restore()
+        return
+      }
       ctx.fillStyle = '#ffffff'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(total.toLocaleString(), arc.x, arc.y)
+      ctx.fillText(text, arc.x, arc.y)
       ctx.restore()
     },
   }
