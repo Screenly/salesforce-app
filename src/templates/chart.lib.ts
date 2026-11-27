@@ -59,7 +59,12 @@ export function extractChartData(reportResult: ReportResult): ChartData {
     values.push(Number(value))
   }
 
-  return { labels, values }
+  const grandTotal = Number(factMap['T!T']?.aggregates?.[0]?.value)
+  const total = Number.isFinite(grandTotal)
+    ? grandTotal
+    : values.reduce((sum, value) => sum + value, 0)
+
+  return { labels, values, total }
 }
 
 export function buildDatalabelsConfig(chartType: ChartKind) {

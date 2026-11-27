@@ -1,4 +1,4 @@
-import { Chart, registerables } from 'chart.js'
+import { Chart, registerables, type Plugin } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import type { ReportResult } from '../types'
 import {
@@ -15,6 +15,29 @@ Chart.register(...registerables, ChartDataLabels)
 
 Chart.defaults.animation = false
 
+// Draws the grand total in the hole of a donut chart, as Salesforce does.
+function centerTotalPlugin(total: number): Plugin<'doughnut'> {
+  return {
+    id: 'centerTotal',
+    afterDraw(chart) {
+      const meta = chart.getDatasetMeta(0)
+      const arc = meta.data[0] as unknown as
+        { x: number; y: number; innerRadius: number } | undefined
+      if (!arc || !arc.innerRadius) return
+
+      const { ctx } = chart
+      const fontSize = Math.max(14, Math.round(arc.innerRadius * 0.5))
+      ctx.save()
+      ctx.font = `bold ${fontSize}px ${Chart.defaults.font.family}`
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(total.toLocaleString(), arc.x, arc.y)
+      ctx.restore()
+    },
+  }
+}
+
 export function mountChart(
   container: HTMLElement,
   componentId: string,
@@ -23,7 +46,7 @@ export function mountChart(
   title: string,
   showLabels: boolean = false
 ): void {
-  const { labels, values } = extractChartData(reportResult)
+  const { labels, values, total } = extractChartData(reportResult)
 
   if (labels.length === 0) {
     mountEmpty(container)
@@ -66,5 +89,6 @@ export function mountChart(
       },
       scales: buildScalesConfig(chartKind),
     },
+    plugins: chartKind === 'doughnut' ? [centerTotalPlugin(total)] : [],
   })
 }
