@@ -7,6 +7,7 @@ import type {
 import { buildNeedlePlugin } from './gauge.lib'
 import { resetChartContainer } from './chart.lib'
 import { mountEmpty } from './empty'
+import { CHART_THEMES, type ThemeMode } from './theme'
 
 Chart.register(...registerables)
 
@@ -15,7 +16,8 @@ export function mountGauge(
   componentId: string,
   reportResult: ReportResult,
   meta: DashboardMetadataComponent,
-  showLabels: boolean = false
+  showLabels: boolean = false,
+  theme: ThemeMode = 'light'
 ): void {
   const value = Number(
     reportResult.factMap?.['T!T']?.aggregates?.[0]?.value ?? 0
@@ -45,7 +47,8 @@ export function mountGauge(
     max,
     breaks,
     percent,
-    showLabels
+    showLabels,
+    CHART_THEMES[theme].gaugeNeedle
   )
 
   const gaugeConfig: ChartConfiguration<'doughnut'> = {

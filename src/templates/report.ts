@@ -1,11 +1,12 @@
 import type { ReportResult } from '../types'
 import { mountCards } from './card'
+import type { RenderOptions } from './index.types'
 import { buildReportCards } from './report.lib'
 
 export function renderReport(
   contentId: string,
   reportResult: ReportResult,
-  showLabels: boolean = false
+  options: RenderOptions
 ): void {
   const dashboardTitle = document.getElementById('dashboard-title')
   const chartsGrid = document.getElementById('charts-grid')
@@ -19,11 +20,6 @@ export function renderReport(
   chartsGrid.style.gridTemplateColumns = 'repeat(12, 1fr)'
   chartsGrid.style.gridAutoRows = 'minmax(6rem, auto)'
 
-  const cards = buildReportCards(
-    contentId,
-    reportResult,
-    reportName,
-    showLabels
-  )
+  const cards = buildReportCards(contentId, reportResult, reportName, options)
   mountCards(chartsGrid, cards)
 }

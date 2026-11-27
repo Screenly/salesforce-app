@@ -59,6 +59,23 @@ settings:
         help_text: Sentry DSN for reporting credential and content-load errors. Leave empty to disable.
         type: string
       schema_version: 1
+  theme:
+    type: string
+    default_value: salesforce
+    title: Theme
+    optional: true
+    help_text:
+      properties:
+        help_text: Salesforce follows the look set on the dashboard in Salesforce. Choose Light or Dark to override it.
+        options:
+        - label: Salesforce
+          value: salesforce
+        - label: Light
+          value: light
+        - label: Dark
+          value: dark
+        type: select
+      schema_version: 1
   show_labels:
     type: string
     default_value: 'false'

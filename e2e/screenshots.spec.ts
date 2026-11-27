@@ -40,21 +40,38 @@ const SUMMARY_REPORT_RESULT = {
       RowCount: { dataType: 'int', label: 'Record Count' },
     },
     detailColumnInfo: {},
+    groupingColumnInfo: {
+      TYPE: { dataType: 'picklist', label: 'Type' },
+    },
   },
-  reportMetadata: { aggregates: ['RowCount'], detailColumns: [] },
+  reportMetadata: {
+    aggregates: ['RowCount'],
+    detailColumns: [],
+    groupingsDown: [{ name: 'TYPE' }],
+  },
 }
+
+const MOCK_REFRESH_DATE = '2025-02-19T21:05:00.000+0000'
 
 const MOCK_DASHBOARD_RESPONSE = {
   componentData: [
     {
       componentId: 'comp-bar',
       reportResult: SUMMARY_REPORT_RESULT,
-      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+      status: {
+        componentDataStatus: 'DATA',
+        refreshStatus: 'IDLE',
+        refreshDate: MOCK_REFRESH_DATE,
+      },
     },
     {
       componentId: 'comp-donut',
       reportResult: SUMMARY_REPORT_RESULT,
-      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+      status: {
+        componentDataStatus: 'DATA',
+        refreshStatus: 'IDLE',
+        refreshDate: MOCK_REFRESH_DATE,
+      },
     },
     {
       componentId: 'comp-line',
@@ -84,10 +101,17 @@ const MOCK_DASHBOARD_RESPONSE = {
             SUM_AMOUNT: { dataType: 'currency', label: 'Amount' },
           },
           detailColumnInfo: {},
+          groupingColumnInfo: {
+            CLOSE_DATE: { dataType: 'date', label: 'Close Month' },
+          },
         },
         reportMetadata: { aggregates: ['SUM_AMOUNT'], detailColumns: [] },
       },
-      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+      status: {
+        componentDataStatus: 'DATA',
+        refreshStatus: 'IDLE',
+        refreshDate: MOCK_REFRESH_DATE,
+      },
     },
     {
       componentId: 'comp-metric',
@@ -105,7 +129,11 @@ const MOCK_DASHBOARD_RESPONSE = {
         },
         reportMetadata: { aggregates: ['RowCount'], detailColumns: [] },
       },
-      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+      status: {
+        componentDataStatus: 'DATA',
+        refreshStatus: 'IDLE',
+        refreshDate: MOCK_REFRESH_DATE,
+      },
     },
     {
       componentId: 'comp-gauge',
@@ -123,7 +151,11 @@ const MOCK_DASHBOARD_RESPONSE = {
         },
         reportMetadata: { aggregates: ['RowCount'], detailColumns: [] },
       },
-      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+      status: {
+        componentDataStatus: 'DATA',
+        refreshStatus: 'IDLE',
+        refreshDate: MOCK_REFRESH_DATE,
+      },
     },
     {
       componentId: 'comp-table',
@@ -164,18 +196,25 @@ const MOCK_DASHBOARD_RESPONSE = {
           detailColumns: ['ACCOUNT.NAME', 'USERS.NAME', 'RATING'],
         },
       },
-      status: { componentDataStatus: 'DATA', refreshStatus: 'IDLE' },
+      status: {
+        componentDataStatus: 'DATA',
+        refreshStatus: 'IDLE',
+        refreshDate: MOCK_REFRESH_DATE,
+      },
     },
   ],
   dashboardMetadata: {
     name: 'Mock Dashboard',
     id: MOCK_DASHBOARD_ID,
+    chartTheme: 'light',
+    colorPalette: 'unity',
     components: [
       {
         id: 'comp-bar',
         componentData: 0,
         header: 'Accounts by Type',
-        title: null,
+        title: 'All Accounts',
+        footer: null,
         reportId: '00O000000000001',
         type: 'Report',
         properties: {
@@ -189,7 +228,8 @@ const MOCK_DASHBOARD_RESPONSE = {
         id: 'comp-donut',
         componentData: 1,
         header: 'Account Mix',
-        title: null,
+        title: 'All Accounts',
+        footer: 'Excludes archived accounts',
         reportId: '00O000000000001',
         type: 'Report',
         properties: {
@@ -203,7 +243,8 @@ const MOCK_DASHBOARD_RESPONSE = {
         id: 'comp-line',
         componentData: 2,
         header: 'Monthly Revenue',
-        title: null,
+        title: 'Closed Won Opportunities',
+        footer: null,
         reportId: '00O000000000003',
         type: 'Report',
         properties: {
@@ -381,6 +422,19 @@ const { screenlyJsContent: dashboardScreenlyJsContent } =
     }
   )
 
+const { screenlyJsContent: dashboardDarkScreenlyJsContent } =
+  createMockScreenlyForScreenshots(
+    { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
+    {
+      content_id: MOCK_DASHBOARD_ID,
+      refresh_interval: '300',
+      display_errors: 'false',
+      theme: 'dark',
+      screenly_oauth_tokens_url: 'http://localhost:3000/',
+      screenly_app_auth_token: 'mock-token',
+    }
+  )
+
 const { screenlyJsContent: reportScreenlyJsContent } =
   createMockScreenlyForScreenshots(
     { coordinates: MOCK_COORDINATES, location: MOCK_LOCATION },
@@ -506,6 +560,22 @@ for (const [width, height] of [
       height,
       `dashboard-labels-${width}x${height}.png`,
       dashboardLabelsScreenlyJsContent,
+      (context) => setupDashboardRoutes(context)
+    )
+  })
+}
+
+for (const [width, height] of [
+  [1920, 1080],
+  [1080, 1920],
+]) {
+  test(`screenshot dashboard-dark ${width}x${height}`, async ({ browser }) => {
+    await takeScreenshot(
+      browser,
+      width,
+      height,
+      `dashboard-dark-${width}x${height}.png`,
+      dashboardDarkScreenlyJsContent,
       (context) => setupDashboardRoutes(context)
     )
   })

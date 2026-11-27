@@ -6,7 +6,8 @@ export function drawGaugeNeedle(
   cx: number,
   cy: number,
   outerRadius: number,
-  percent: number
+  percent: number,
+  color: string = '#ffffff'
 ): void {
   const safePercent = Number.isFinite(percent)
     ? Math.max(0, Math.min(1, percent))
@@ -19,13 +20,13 @@ export function drawGaugeNeedle(
     cx + outerRadius * 0.75 * Math.cos(angle),
     cy + outerRadius * 0.75 * Math.sin(angle)
   )
-  context.strokeStyle = '#ffffff'
+  context.strokeStyle = color
   context.lineWidth = Math.max(2, outerRadius * 0.025)
   context.lineCap = 'round'
   context.stroke()
   context.beginPath()
   context.arc(cx, cy, outerRadius * 0.06, 0, 2 * Math.PI)
-  context.fillStyle = '#ffffff'
+  context.fillStyle = color
   context.fill()
   context.restore()
 }
@@ -38,7 +39,8 @@ export function drawGaugeBreakLabels(
   innerRadius: number,
   min: number,
   max: number,
-  breaks: GaugeBreak[]
+  breaks: GaugeBreak[],
+  color: string = '#ffffff'
 ): void {
   const range = max - min
   if (range <= 0) return
@@ -57,7 +59,7 @@ export function drawGaugeBreakLabels(
     const x = cx + labelRadius * Math.cos(angle)
     const y = cy + labelRadius * Math.sin(angle)
 
-    context.fillStyle = '#ffffff'
+    context.fillStyle = color
     context.fillText(String(gaugeBreak.upperBound), x, y)
   }
 
@@ -70,7 +72,8 @@ export function buildNeedlePlugin(
   max: number,
   breaks: GaugeBreak[],
   percent: number,
-  showLabels: boolean
+  showLabels: boolean,
+  color: string = '#ffffff'
 ) {
   return {
     id: `gaugeNeedle-${componentId}`,
@@ -87,10 +90,18 @@ export function buildNeedlePlugin(
           arcEl.innerRadius,
           min,
           max,
-          breaks
+          breaks,
+          color
         )
       }
-      drawGaugeNeedle(context, arcEl.x, arcEl.y, arcEl.outerRadius, percent)
+      drawGaugeNeedle(
+        context,
+        arcEl.x,
+        arcEl.y,
+        arcEl.outerRadius,
+        percent,
+        color
+      )
     },
   }
 }
