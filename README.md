@@ -106,14 +106,15 @@ The Edge App ids come from the `STAGE_EDGE_APP_ID` and `PRODUCTION_EDGE_APP_ID` 
 
 ## Configuration
 
-| Setting            | Type   | Required | Description                                                                                           |
-| ------------------ | ------ | -------- | ----------------------------------------------------------------------------------------------------- |
-| `access_token`     | secret | No       | For testing only. In production, the token is fetched dynamically via the API.                        |
-| `content_id`       | string | Yes      | Salesforce dashboard ID or report ID to display                                                       |
-| `refresh_interval` | string | No       | How often (in seconds) to refresh Salesforce data. Default: `300`                                     |
-| `display_errors`   | string | No       | Display errors on screen for debugging (`true`/`false`). Default: `false`                             |
-| `show_labels`      | string | No       | Show data labels on charts and gauges (`true`/`false`). Default: `false`                              |
-| `sentry_dsn`       | secret | No       | Sentry DSN for reporting credential and content-load errors. Global setting — leave empty to disable. |
+| Setting            | Type   | Required | Description                                                                                                                           |
+| ------------------ | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `access_token`     | secret | No       | For testing only. In production, the token is fetched dynamically via the API.                                                        |
+| `content_id`       | string | Yes      | Salesforce dashboard ID or report ID to display                                                                                       |
+| `refresh_interval` | string | No       | How often (in seconds) to refresh Salesforce data. Default: `300`                                                                     |
+| `display_errors`   | string | No       | Display errors on screen for debugging (`true`/`false`). Default: `false`                                                             |
+| `show_labels`      | string | No       | Show data labels on charts and gauges (`true`/`false`). Default: `false`                                                              |
+| `theme`            | string | No       | `salesforce` follows the light or dark look set on the dashboard in Salesforce; `light` or `dark` overrides it. Default: `salesforce` |
+| `sentry_dsn`       | secret | No       | Sentry DSN for reporting credential and content-load errors. Global setting — leave empty to disable.                                 |
 
 ## Authentication
 
