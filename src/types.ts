@@ -82,6 +82,9 @@ export interface DashboardResults {
   dashboardMetadata: {
     name: string
     id: string
+    // Light or dark look chosen on the dashboard in Salesforce.
+    chartTheme?: 'light' | 'dark' | null
+    colorPalette?: string | null
     components: DashboardMetadataComponent[]
     layout?: {
       components: DashboardLayoutComponent[]

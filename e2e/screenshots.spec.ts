@@ -51,7 +51,7 @@ const SUMMARY_REPORT_RESULT = {
   },
 }
 
-const MOCK_REFRESH_DATE = '2025-02-19T21:05:00.000Z'
+const MOCK_REFRESH_DATE = '2025-02-19T21:05:00.000+0000'
 
 const MOCK_DASHBOARD_RESPONSE = {
   componentData: [
@@ -206,6 +206,8 @@ const MOCK_DASHBOARD_RESPONSE = {
   dashboardMetadata: {
     name: 'Mock Dashboard',
     id: MOCK_DASHBOARD_ID,
+    chartTheme: 'light',
+    colorPalette: 'unity',
     components: [
       {
         id: 'comp-bar',

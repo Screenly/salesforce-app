@@ -79,7 +79,7 @@ describe('buildDashboardCards', () => {
     const [card] = buildDashboardCards(
       dashboard(
         component({ footer: 'Max 100 rows' }),
-        data({ refreshDate: '2025-02-19T21:05:00.000Z' })
+        data({ refreshDate: '2025-02-19T21:05:00.000+0000' })
       ),
       OPTIONS
     )

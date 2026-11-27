@@ -11,6 +11,7 @@ import {
   getAggregateLabel,
   getGroupingLabel,
   mapChartType,
+  parseLegendPosition,
 } from './chart.lib'
 import { mountChart } from './chart'
 import { mountEmpty } from './empty'
@@ -84,6 +85,7 @@ function drawDashboardComponent(
         theme: options.theme,
         showLabels,
         showTotal: vizProps.showTotal !== false,
+        legendPosition: parseLegendPosition(vizProps.legendPosition),
         valueLabel: getAggregateLabel(
           item.reportResult,
           meta.properties.aggregates?.[0]?.name

@@ -147,16 +147,24 @@ export function buildDatasetStyle(chartKind: ChartKind, theme: ChartTheme) {
   return { backgroundColor: primaryColor, borderWidth: 0 }
 }
 
-// Only circular charts get a legend: it sits on the right, titled with the
-// grouping, with round markers.
+export type LegendPosition = 'right' | 'bottom' | 'none'
+
+export function parseLegendPosition(value: unknown): LegendPosition {
+  return value === 'bottom' || value === 'none' ? value : 'right'
+}
+
+// Only circular charts get a legend, placed where the dashboard puts it
+// (right by default), titled with the grouping, with round markers. Bar,
+// column and line charts are a single series, which needs no legend.
 export function buildLegendConfig(
   chartKind: ChartKind,
   theme: ChartTheme,
-  groupingLabel?: string
+  groupingLabel?: string,
+  position: LegendPosition = 'right'
 ) {
   return {
-    display: isCircularChart(chartKind),
-    position: 'right' as const,
+    display: isCircularChart(chartKind) && position !== 'none',
+    position: position === 'bottom' ? ('bottom' as const) : ('right' as const),
     title: {
       display: Boolean(groupingLabel),
       text: groupingLabel ?? '',

@@ -8,6 +8,7 @@ import {
   buildScalesConfig,
   extractChartData,
   isCircularChart,
+  type LegendPosition,
   resetChartContainer,
 } from './chart.lib'
 import type { ChartKind } from './chart.types'
@@ -34,6 +35,7 @@ export type ChartOptions = {
   valueLabel?: string
   // Grouping, e.g. "Status".
   groupingLabel?: string
+  legendPosition?: LegendPosition
 }
 
 function centerTotalPlugin(total: number, color: string): Plugin<'doughnut'> {
@@ -112,7 +114,12 @@ export function mountChart(
           color: theme.text,
           font: { size: 14, weight: 'normal' },
         },
-        legend: buildLegendConfig(chartKind, theme, options.groupingLabel),
+        legend: buildLegendConfig(
+          chartKind,
+          theme,
+          options.groupingLabel,
+          options.legendPosition
+        ),
         datalabels: options.showLabels
           ? buildDatalabelsConfig(chartKind, theme)
           : { display: false },

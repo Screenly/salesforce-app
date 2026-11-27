@@ -19,6 +19,11 @@ describe('formatAsOf', () => {
     expect(formatted).toMatch(/^19 Feb 2025\b.*\b22:05$/)
   })
 
+  test('parses the Salesforce offset format without a colon', () => {
+    const formatted = formatAsOf('2025-02-19T21:05:00.000+0000', 'en-US', 'UTC')
+    expect(formatted).toMatch(/^Feb 19, 2025\b.*\b09:05\sPM$/)
+  })
+
   test('returns undefined for a missing or invalid date', () => {
     expect(formatAsOf(undefined, 'en-US', 'UTC')).toBeUndefined()
     expect(formatAsOf(null, 'en-US', 'UTC')).toBeUndefined()

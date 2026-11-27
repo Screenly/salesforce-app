@@ -2,10 +2,13 @@ import '@screenly/edge-apps/test'
 import { describe, expect, test } from 'bun:test'
 import type { ReportResult } from '../types'
 import {
+  buildLegendConfig,
   extractChartData,
   getAggregateLabel,
   getGroupingLabel,
+  parseLegendPosition,
 } from './chart.lib'
+import { CHART_THEMES } from './theme'
 
 const REPORT: ReportResult = {
   factMap: {
@@ -75,5 +78,31 @@ describe('getAggregateLabel', () => {
 
   test('is undefined without aggregate metadata', () => {
     expect(getAggregateLabel({ factMap: {} })).toBeUndefined()
+  })
+})
+
+describe('legend position', () => {
+  const theme = CHART_THEMES.light
+
+  test('parses the dashboard legendPosition, defaulting to right', () => {
+    expect(parseLegendPosition('bottom')).toBe('bottom')
+    expect(parseLegendPosition('none')).toBe('none')
+    expect(parseLegendPosition('right')).toBe('right')
+    expect(parseLegendPosition(undefined)).toBe('right')
+  })
+
+  test('places the donut legend where the dashboard puts it', () => {
+    expect(
+      buildLegendConfig('doughnut', theme, 'Status', 'bottom')
+    ).toMatchObject({ display: true, position: 'bottom' })
+    expect(buildLegendConfig('doughnut', theme, 'Status', 'none').display).toBe(
+      false
+    )
+  })
+
+  test('never shows a legend for single-series charts', () => {
+    expect(buildLegendConfig('bar', theme, 'Status', 'right').display).toBe(
+      false
+    )
   })
 })

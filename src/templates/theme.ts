@@ -59,14 +59,13 @@ export function resolveThemeSetting(value: unknown): ThemeSetting {
     : 'salesforce'
 }
 
-// Salesforce stores the theme chosen in the dashboard's properties. Read it
-// defensively since the field name has varied between API versions.
+// The light or dark look chosen on the dashboard, which the Reports and
+// Dashboards REST API returns as dashboardMetadata.chartTheme.
 export function salesforceThemeMode(
   results: DashboardResults | null | undefined
 ): ThemeMode {
-  const metadata = (results?.dashboardMetadata ?? {}) as Record<string, unknown>
-  const value = metadata.dashboardTheme ?? metadata.chartTheme
-  return typeof value === 'string' && value.toLowerCase() === 'dark'
+  const chartTheme = results?.dashboardMetadata?.chartTheme
+  return typeof chartTheme === 'string' && chartTheme.toLowerCase() === 'dark'
     ? 'dark'
     : 'light'
 }

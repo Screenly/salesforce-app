@@ -35,34 +35,26 @@ describe('resolveThemeSetting', () => {
 })
 
 describe('salesforceThemeMode', () => {
-  test('reads dashboardTheme', () => {
-    expect(salesforceThemeMode(dashboardWith({ dashboardTheme: 'DARK' }))).toBe(
-      'dark'
-    )
-  })
-
-  test('falls back to chartTheme', () => {
+  test('reads chartTheme from the dashboard metadata', () => {
     expect(salesforceThemeMode(dashboardWith({ chartTheme: 'dark' }))).toBe(
       'dark'
     )
-  })
-
-  test('prefers dashboardTheme over chartTheme', () => {
-    expect(
-      salesforceThemeMode(
-        dashboardWith({ dashboardTheme: 'light', chartTheme: 'dark' })
-      )
-    ).toBe('light')
+    expect(salesforceThemeMode(dashboardWith({ chartTheme: 'light' }))).toBe(
+      'light'
+    )
   })
 
   test('defaults to light when no theme is set or there is no dashboard', () => {
     expect(salesforceThemeMode(dashboardWith({}))).toBe('light')
+    expect(salesforceThemeMode(dashboardWith({ chartTheme: null }))).toBe(
+      'light'
+    )
     expect(salesforceThemeMode(null)).toBe('light')
   })
 })
 
 describe('resolveThemeMode', () => {
-  const darkDashboard = dashboardWith({ dashboardTheme: 'dark' })
+  const darkDashboard = dashboardWith({ chartTheme: 'dark' })
 
   test('follows the dashboard for the salesforce setting', () => {
     expect(resolveThemeMode('salesforce', darkDashboard)).toBe('dark')
