@@ -5,3 +5,4 @@ mock-data.yml
 screenshots/**/*.png
 *.local
 .DS_Store
+test-results/
