@@ -1,4 +1,4 @@
-import { Chart, registerables } from 'chart.js'
+import { Chart, registerables, type Plugin } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import type { ReportResult } from '../types'
 import {
@@ -15,6 +15,44 @@ Chart.register(...registerables, ChartDataLabels)
 
 Chart.defaults.animation = false
 
+// Draws the grand total in the hole of a donut chart, as Salesforce does.
+function centerTotalPlugin(total: number): Plugin<'doughnut'> {
+  return {
+    id: 'centerTotal',
+    afterDraw(chart) {
+      const meta = chart.getDatasetMeta(0)
+      const arc = meta.data[0] as unknown as
+        { x: number; y: number; innerRadius: number } | undefined
+      if (!arc || !arc.innerRadius) return
+
+      const { ctx } = chart
+      const text = total.toLocaleString()
+      const font = (size: number) =>
+        `bold ${size}px ${Chart.defaults.font.family}`
+      // Start from half the hole radius, then shrink so the text stays
+      // within 80% of the hole's width, however long the number is.
+      const maxWidth = arc.innerRadius * 2 * 0.8
+      let fontSize = Math.round(arc.innerRadius * 0.5)
+      ctx.save()
+      ctx.font = font(fontSize)
+      const textWidth = ctx.measureText(text).width
+      if (textWidth > maxWidth) {
+        fontSize = Math.floor((fontSize * maxWidth) / textWidth)
+        ctx.font = font(fontSize)
+      }
+      if (fontSize < 8) {
+        ctx.restore()
+        return
+      }
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(text, arc.x, arc.y)
+      ctx.restore()
+    },
+  }
+}
+
 export function mountChart(
   container: HTMLElement,
   componentId: string,
@@ -23,7 +61,7 @@ export function mountChart(
   title: string,
   showLabels: boolean = false
 ): void {
-  const { labels, values } = extractChartData(reportResult)
+  const { labels, values, total } = extractChartData(reportResult)
 
   if (labels.length === 0) {
     mountEmpty(container)
@@ -66,5 +104,6 @@ export function mountChart(
       },
       scales: buildScalesConfig(chartKind),
     },
+    plugins: chartKind === 'doughnut' ? [centerTotalPlugin(total)] : [],
   })
 }
